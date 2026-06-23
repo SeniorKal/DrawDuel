@@ -1,7 +1,10 @@
+require('dotenv').config();
+
 const path = require('path');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const { judgeDrawings: judgeDrawingsWithGemini } = require('./services/geminiJudge');
 
 const THEMES = [
   'Gato',
@@ -197,7 +200,7 @@ function startDuel(roomCode) {
   console.log(`duelo iniciado: ${roomCode}`);
 }
 
-function submitDrawing(socket, payload) {
+async function submitDrawing(socket, payload) {
   const roomCode = String(payload.roomCode || '').trim().toUpperCase();
   const room = rooms.get(roomCode);
 
@@ -223,36 +226,81 @@ function submitDrawing(socket, payload) {
     socketId: socket.id,
     nickname: payload.nickname || player.nickname,
     drawingDataUrl: payload.drawingDataUrl,
+    language: payload.language || 'pt-BR',
   });
 
   console.log(`desenho recebido: ${player.nickname} em ${roomCode}`);
 
   if (room.drawings.length === 2) {
-    finishDuel(roomCode);
+    await finishDuel(roomCode);
   }
 }
 
-function finishDuel(roomCode) {
+function getFallbackJudgement(room, errorMessage) {
+  const winnerIndex = Math.floor(Math.random() * room.players.length);
+  const winner = winnerIndex === 0 ? 'player1' : 'player2';
+  const winnerName = room.players[winnerIndex].nickname;
+  const reason = 'A avalia\u00e7\u00e3o do Gemini falhou, ent\u00e3o um vencedor aleat\u00f3rio foi escolhido.';
+
+  console.error(`Gemini judge failed. Using fallback judgement: ${errorMessage}`);
+
+  return {
+    winner,
+    winnerName,
+    player1Score: winner === 'player1' ? 7 : 6,
+    player2Score: winner === 'player2' ? 7 : 6,
+    reason,
+  };
+}
+
+async function finishDuel(roomCode) {
   const room = rooms.get(roomCode);
 
   if (!room || room.drawings.length !== 2) {
     return;
   }
 
-  room.status = 'finished';
-  const winner = room.players[Math.floor(Math.random() * room.players.length)];
+  room.status = 'judging';
+  const player1 = room.players[0];
+  const player2 = room.players[1];
+  const player1Drawing = room.drawings.find((drawing) => drawing.socketId === player1.socketId);
+  const player2Drawing = room.drawings.find((drawing) => drawing.socketId === player2.socketId);
+  let judgement;
 
-  room.players.forEach((player) => {
-    const ownDrawing = room.drawings.find((drawing) => drawing.socketId === player.socketId);
-    const opponentDrawing = room.drawings.find((drawing) => drawing.socketId !== player.socketId);
-
-    io.to(player.socketId).emit('drawings-ready', {
-      roomCode,
+  try {
+    // Send the completed duel to the Gemini judge service and wait for the verdict.
+    judgement = await judgeDrawingsWithGemini({
       theme: room.theme,
-      winnerNickname: winner.nickname,
-      ownDrawing,
-      opponentDrawing,
+      player1Name: player1.nickname,
+      player2Name: player2.nickname,
+      player1Image: player1Drawing.drawingDataUrl,
+      player2Image: player2Drawing.drawingDataUrl,
     });
+  } catch (error) {
+    // If Gemini is unavailable or returns invalid JSON, keep the match flow alive with a random winner.
+    judgement = getFallbackJudgement(room, error.message);
+  }
+
+  const winnerName = judgement.winner === 'player1' ? player1.nickname : player2.nickname;
+
+  room.status = 'finished';
+  room.judgement = {
+    ...judgement,
+    winnerName,
+  };
+
+  io.to(roomCode).emit('duel-result', {
+    roomCode,
+    theme: room.theme,
+    player1Nickname: player1.nickname,
+    player2Nickname: player2.nickname,
+    player1Drawing,
+    player2Drawing,
+    winner: judgement.winner,
+    winnerName,
+    player1Score: judgement.player1Score,
+    player2Score: judgement.player2Score,
+    reason: judgement.reason,
   });
 
   console.log(`duelo finalizado: ${roomCode}`);
@@ -299,8 +347,8 @@ io.on('connection', (socket) => {
     markPlayerReady(socket);
   });
 
-  socket.on('submit-drawing', (payload) => {
-    submitDrawing(socket, payload);
+  socket.on('submit-drawing', async (payload) => {
+    await submitDrawing(socket, payload);
   });
 
   socket.on('disconnect', () => {

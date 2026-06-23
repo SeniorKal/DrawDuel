@@ -51,6 +51,7 @@ const TRANSLATIONS = {
     resultScreenLabel: 'Resultado do duelo',
     result: 'Resultado',
     aiNotImplemented: 'IA ainda n\u00e3o implementada',
+    aiJudgeResult: 'Resultado da IA',
     room: 'Sala',
     yourDrawing: 'Seu desenho',
     opponentDrawing: 'Desenho do advers\u00e1rio',
@@ -65,6 +66,7 @@ const TRANSLATIONS = {
     preparing: 'Prepare-se...',
     timeEndedSending: 'Tempo encerrado! Enviando desenho...',
     soloFinished: 'Treino solo finalizado',
+    winner: 'Vencedor: {name}',
     fakeWinner: 'Vencedor fake: {name}',
     fakeWinnerEmpty: 'Vencedor fake: -',
     connecting: 'Conectando ao servidor...',
@@ -124,6 +126,7 @@ const TRANSLATIONS = {
     resultScreenLabel: 'Duel result',
     result: 'Result',
     aiNotImplemented: 'AI not implemented yet',
+    aiJudgeResult: 'AI result',
     room: 'Room',
     yourDrawing: 'Your drawing',
     opponentDrawing: 'Opponent drawing',
@@ -138,6 +141,7 @@ const TRANSLATIONS = {
     preparing: 'Get ready...',
     timeEndedSending: 'Time is up! Sending drawing...',
     soloFinished: 'Solo practice finished',
+    winner: 'Winner: {name}',
     fakeWinner: 'Fake winner: {name}',
     fakeWinnerEmpty: 'Fake winner: -',
     connecting: 'Connecting to server...',
@@ -222,6 +226,11 @@ const statusMessage = document.getElementById('statusMessage');
 const resultRoom = document.getElementById('resultRoom');
 const resultTheme = document.getElementById('resultTheme');
 const winnerMessage = document.getElementById('winnerMessage');
+const judgeReason = document.getElementById('judgeReason');
+const player1ScoreLabel = document.getElementById('player1ScoreLabel');
+const player2ScoreLabel = document.getElementById('player2ScoreLabel');
+const player1ScoreDisplay = document.getElementById('player1ScoreDisplay');
+const player2ScoreDisplay = document.getElementById('player2ScoreDisplay');
 const ownResultImage = document.getElementById('ownResultImage');
 const opponentResultCard = document.getElementById('opponentResultCard');
 const opponentResultImage = document.getElementById('opponentResultImage');
@@ -425,6 +434,7 @@ function submitDrawing() {
     roomCode: currentRoomCode,
     nickname: currentPlayer,
     drawingDataUrl: getCanvasImage(),
+    language: currentLanguage,
   });
 }
 
@@ -438,6 +448,11 @@ function showResult(payload) {
   winnerMessage.textContent = isSoloMode
     ? t('soloFinished')
     : t('fakeWinner').replace('{name}', payload.winnerNickname);
+  judgeReason.textContent = '';
+  player1ScoreLabel.textContent = currentPlayer;
+  player2ScoreLabel.textContent = '-';
+  player1ScoreDisplay.textContent = '-';
+  player2ScoreDisplay.textContent = '-';
   ownResultImage.src = payload.ownDrawing.drawingDataUrl;
   opponentResultCard.hidden = !payload.opponentDrawing;
 
@@ -446,6 +461,32 @@ function showResult(payload) {
   } else {
     opponentResultImage.removeAttribute('src');
   }
+
+  gameScreen.hidden = true;
+  resultScreen.hidden = false;
+  statusMessage.textContent = '';
+}
+
+function showDuelResult(payload) {
+  clearInterval(timerId);
+  clearTimeout(gameStartTimeoutId);
+
+  const isPlayer1 = payload.player1Nickname === currentPlayer;
+  const ownDrawing = isPlayer1 ? payload.player1Drawing : payload.player2Drawing;
+  const opponentDrawing = isPlayer1 ? payload.player2Drawing : payload.player1Drawing;
+
+  lastWinnerNickname = payload.winnerName || '';
+  resultRoom.textContent = payload.roomCode;
+  resultTheme.textContent = translateTheme(payload.theme);
+  winnerMessage.textContent = t('winner').replace('{name}', payload.winnerName);
+  judgeReason.textContent = payload.reason;
+  player1ScoreLabel.textContent = payload.player1Nickname;
+  player2ScoreLabel.textContent = payload.player2Nickname;
+  player1ScoreDisplay.textContent = `${payload.player1Score}/10`;
+  player2ScoreDisplay.textContent = `${payload.player2Score}/10`;
+  ownResultImage.src = ownDrawing.drawingDataUrl;
+  opponentResultImage.src = opponentDrawing.drawingDataUrl;
+  opponentResultCard.hidden = false;
 
   gameScreen.hidden = true;
   resultScreen.hidden = false;
@@ -524,6 +565,11 @@ function resetGame() {
   resultRoom.textContent = '-';
   resultTheme.textContent = '-';
   winnerMessage.textContent = t('fakeWinnerEmpty');
+  judgeReason.textContent = '';
+  player1ScoreLabel.textContent = 'Player 1';
+  player2ScoreLabel.textContent = 'Player 2';
+  player1ScoreDisplay.textContent = '-';
+  player2ScoreDisplay.textContent = '-';
   ownResultImage.removeAttribute('src');
   opponentResultCard.hidden = false;
   opponentResultImage.removeAttribute('src');
@@ -671,7 +717,7 @@ function applyLanguage() {
   if (isSoloMode && !resultScreen.hidden) {
     winnerMessage.textContent = t('soloFinished');
   } else if (lastWinnerNickname) {
-    winnerMessage.textContent = t('fakeWinner').replace('{name}', lastWinnerNickname);
+    winnerMessage.textContent = t('winner').replace('{name}', lastWinnerNickname);
   } else if (winnerMessage.textContent) {
     winnerMessage.textContent = t('fakeWinnerEmpty');
   }
@@ -861,7 +907,7 @@ if (socket) {
 
   socket.on('room-state', handleRoomState);
   socket.on('duel-started', startGame);
-  socket.on('drawings-ready', showResult);
+  socket.on('duel-result', showDuelResult);
 
   socket.on('room-error', ({ messageKey, message }) => {
     const translatedMessage = messageKey ? t(messageKey) : message;

@@ -139,13 +139,16 @@
     <section id="resultScreen" class="card result-card" aria-label="Resultado do duelo" data-i18n-aria-label="resultScreenLabel" hidden>
       <div class="result-header">
         <span class="eyebrow" data-i18n="result">Resultado</span>
-        <h2 data-i18n="aiNotImplemented">IA ainda n&atilde;o implementada</h2>
+        <h2 data-i18n="aiJudgeResult">Resultado da IA</h2>
         <p id="winnerMessage" class="winner-message">Vencedor fake: -</p>
+        <p id="judgeReason" class="judge-reason"></p>
       </div>
 
       <div class="result-details">
         <p><span data-i18n="room">Sala</span><strong id="resultRoom">-</strong></p>
         <p><span data-i18n="theme">Tema</span><strong id="resultTheme">-</strong></p>
+        <p><span id="player1ScoreLabel">Player 1</span><strong id="player1ScoreDisplay">-</strong></p>
+        <p><span id="player2ScoreLabel">Player 2</span><strong id="player2ScoreDisplay">-</strong></p>
       </div>
 
       <div class="result-gallery">

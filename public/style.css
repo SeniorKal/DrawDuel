@@ -679,6 +679,13 @@ button:disabled {
   font-weight: 700;
 }
 
+.judge-reason {
+  max-width: 720px;
+  margin: 12px auto 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .result-gallery {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
