@@ -31,6 +31,13 @@ app.get('/api/health', (request, response) => {
   });
 });
 
+function emitRoomError(socketOrRoom, messageKey, fallbackMessage) {
+  socketOrRoom.emit('room-error', {
+    messageKey,
+    message: fallbackMessage,
+  });
+}
+
 function generateRoomCode() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let roomCode = '';
@@ -45,7 +52,7 @@ function generateRoomCode() {
 
 function createRoom(socket, nickname) {
   if (!nickname) {
-    socket.emit('room-error', { message: 'Digite um nickname.' });
+    emitRoomError(socket, 'nicknameRequired', 'Digite um nickname.');
     return;
   }
 
@@ -76,24 +83,24 @@ function joinRoom(socket, nickname, requestedRoomCode) {
   const roomCode = requestedRoomCode.trim().toUpperCase();
 
   if (!nickname) {
-    socket.emit('room-error', { message: 'Digite um nickname.' });
+    emitRoomError(socket, 'nicknameRequired', 'Digite um nickname.');
     return;
   }
 
   if (!roomCode) {
-    socket.emit('room-error', { message: 'Digite o c\u00f3digo da sala.' });
+    emitRoomError(socket, 'roomCodeRequired', 'Digite o c\u00f3digo da sala.');
     return;
   }
 
   const room = rooms.get(roomCode);
 
   if (!room) {
-    socket.emit('room-error', { message: 'Sala n\u00e3o encontrada.' });
+    emitRoomError(socket, 'roomNotFound', 'Sala n\u00e3o encontrada.');
     return;
   }
 
   if (room.players.length >= 2 || room.status !== 'waiting') {
-    socket.emit('room-error', { message: 'Sala cheia ou duelo j\u00e1 iniciado.' });
+    emitRoomError(socket, 'roomFullOrStarted', 'Sala cheia ou duelo j\u00e1 iniciado.');
     return;
   }
 
@@ -146,14 +153,14 @@ function submitDrawing(socket, payload) {
   const room = rooms.get(roomCode);
 
   if (!room || room.status !== 'playing') {
-    socket.emit('room-error', { message: 'Duelo n\u00e3o encontrado ou j\u00e1 encerrado.' });
+    emitRoomError(socket, 'duelUnavailable', 'Duelo n\u00e3o encontrado ou j\u00e1 encerrado.');
     return;
   }
 
   const player = room.players.find((item) => item.socketId === socket.id);
 
   if (!player) {
-    socket.emit('room-error', { message: 'Jogador n\u00e3o pertence a esta sala.' });
+    emitRoomError(socket, 'playerNotInRoom', 'Jogador n\u00e3o pertence a esta sala.');
     return;
   }
 
@@ -220,9 +227,11 @@ function removePlayerFromRoom(socket) {
   if (room.status !== 'finished') {
     room.status = 'waiting';
     room.drawings = [];
-    io.to(roomCode).emit('room-error', {
-      message: 'O advers\u00e1rio saiu da sala. Crie ou entre em uma nova sala.',
-    });
+    emitRoomError(
+      io.to(roomCode),
+      'opponentLeft',
+      'O advers\u00e1rio saiu da sala. Crie ou entre em uma nova sala.'
+    );
   }
 }
 

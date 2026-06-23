@@ -70,6 +70,13 @@ const TRANSLATIONS = {
     connecting: 'Conectando ao servidor...',
     joiningRoom: 'Entrando na sala...',
     connectionFailed: 'N\u00e3o foi poss\u00edvel conectar ao servidor.',
+    backToMenu: 'Voltar ao Menu',
+    nicknameRequired: 'Digite um nickname.',
+    roomNotFound: 'Sala n\u00e3o encontrada.',
+    roomFullOrStarted: 'Sala cheia ou duelo j\u00e1 iniciado.',
+    duelUnavailable: 'Duelo n\u00e3o encontrado ou j\u00e1 encerrado.',
+    playerNotInRoom: 'Jogador n\u00e3o pertence a esta sala.',
+    opponentLeft: 'O advers\u00e1rio saiu da sala. Crie ou entre em uma nova sala.',
   },
   en: {
     settingsButton: 'Settings',
@@ -128,6 +135,13 @@ const TRANSLATIONS = {
     connecting: 'Connecting to server...',
     joiningRoom: 'Joining room...',
     connectionFailed: 'Could not connect to the server.',
+    backToMenu: 'Back to Menu',
+    nicknameRequired: 'Enter a nickname.',
+    roomNotFound: 'Room not found.',
+    roomFullOrStarted: 'Room is full or the duel has already started.',
+    duelUnavailable: 'Duel not found or already finished.',
+    playerNotInRoom: 'Player does not belong to this room.',
+    opponentLeft: 'The opponent left the room. Create or join a new room.',
   },
 };
 
@@ -170,6 +184,7 @@ const createRoomButton = document.getElementById('createRoomButton');
 const joinRoomButton = document.getElementById('joinRoomButton');
 const startMessage = document.getElementById('startMessage');
 const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+const backToMenuButton = document.getElementById('backToMenuButton');
 const canvas = document.getElementById('drawingCanvas');
 const context = canvas.getContext('2d');
 const playerDisplay = document.getElementById('playerDisplay');
@@ -680,6 +695,7 @@ soloModeButton.addEventListener('click', handleSoloMode);
 friendsModeButton.addEventListener('click', handleFriendsMode);
 createRoomButton.addEventListener('click', handleCreateRoom);
 joinRoomButton.addEventListener('click', handleJoinRoom);
+backToMenuButton.addEventListener('click', resetGame);
 brushColorInput.addEventListener('input', () => {
   brushColor = brushColorInput.value;
   setDrawingMode(false);
@@ -710,11 +726,13 @@ socket.on('room-joined', ({ roomCode }) => {
 socket.on('duel-started', startGame);
 socket.on('drawings-ready', showResult);
 
-socket.on('room-error', ({ message }) => {
-  showStartMessage(message, true);
-  statusMessage.textContent = message;
+socket.on('room-error', ({ messageKey, message }) => {
+  const translatedMessage = messageKey ? t(messageKey) : message;
+
+  showStartMessage(translatedMessage, true);
+  statusMessage.textContent = translatedMessage;
   resetGame();
-  showStartMessage(message, true);
+  showStartMessage(translatedMessage, true);
 });
 
 socket.on('connect_error', () => {
