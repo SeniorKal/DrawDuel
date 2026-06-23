@@ -1,25 +1,33 @@
 # Draw Duel
 
-Draw Duel is a real-time drawing duel web app built with HTML, CSS, JavaScript, Node.js, Express, and Socket.IO.
+Draw Duel is a real-time drawing duel web app built with HTML, CSS, JavaScript, Node.js, Express, Socket.IO, and Google Gemini.
 
-Players can practice alone or create private rooms to play with a friend. When two players join the same room, both receive the same drawing theme and start a synchronized 60-second round. At the end of the timer, each drawing is submitted and both players can see the final results.
+Players can practice alone or create private rooms to play with a friend. In multiplayer mode, both players join the same room, mark themselves as ready, receive the same drawing theme, and start a synchronized 60-second duel. At the end of the timer, both drawings are submitted and Gemini judges which drawing represents the theme better.
+
+## Play Online
+
+You can play Draw Duel here:
+
+https://drawduel.onrender.com/
 
 ## Features
 
 - Solo drawing mode
 - Private multiplayer rooms with 6-character room codes
+- Waiting room with ready checks before the duel starts
 - Real-time room flow with Socket.IO
 - Synchronized 60-second duel timer
 - Random drawing themes
-- Canvas drawing with mouse
+- Canvas drawing with mouse, touch, or stylus
 - Brush color selector
 - Brush size control
 - Eraser tool
 - Clear drawing button
 - Result screen showing both drawings
-- Fake random winner while AI judging is not implemented
+- AI judging with Google Gemini
+- Fallback random winner if Gemini fails
 - Language selector with Portuguese Brazil and English
-- Minimal dark blue and purple game-style interface
+- Dark blue and purple game-style interface
 
 ## Tech Stack
 
@@ -29,6 +37,7 @@ Players can practice alone or create private rooms to play with a friend. When t
 - Node.js
 - Express
 - Socket.IO
+- Google Gemini API
 
 ## Project Structure
 
@@ -40,11 +49,29 @@ DrawDuel/
 │   ├── index.html
 │   ├── style.css
 │   └── script.js
+├── services/
+│   └── geminiJudge.js
 ├── server.js
 ├── package.json
 ├── package-lock.json
 └── README.md
 ```
+
+## Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Optional:
+
+```env
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+On Render, set these values in the service Environment Variables panel instead of committing `.env`.
 
 ## Getting Started
 
@@ -66,7 +93,7 @@ You can also use:
 npm run dev
 ```
 
-### 3. Open the app
+### 3. Open the app locally
 
 Go to:
 
@@ -97,29 +124,31 @@ Response:
 2. Player creates a private room.
 3. The server generates a random 6-character room code.
 4. Another player enters the same code to join.
-5. When the room has 2 players, the server starts the duel.
-6. Both players receive the same theme and a synchronized timer.
-7. When time runs out, each canvas is converted with `canvas.toDataURL()`.
-8. Drawings are sent to the server.
-9. When both drawings are received, the server sends the result to both players.
+5. Both players enter a waiting room.
+6. Both players must click Ready.
+7. The server starts the duel when both players are ready.
+8. Both players receive the same theme and a synchronized timer.
+9. When time runs out, each canvas is converted with `canvas.toDataURL()`.
+10. Drawings are sent to the server.
+11. The server sends both drawings and the theme to Gemini.
+12. Gemini returns the winner, scores, and a short reason.
+13. Both players receive the final result.
 
 ## Current Limitations
 
-- No real AI judging yet
 - No database persistence
 - No user accounts
 - Rooms and drawings are stored temporarily in memory
-- Best played with two browser windows or two devices on the same local server
+- If Gemini fails, the server uses a random fallback winner
 
 ## Future Improvements
 
-- Real AI-based drawing evaluation
 - Persistent match history
 - Player profiles
 - Spectator mode
-- Better mobile drawing support
+- Better reconnect handling
 - More drawing tools
-- Room cleanup and reconnect handling
+- More game modes and theme categories
 
 ## License
 
