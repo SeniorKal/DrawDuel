@@ -237,6 +237,7 @@ let hasSubmittedDrawing = false;
 let timeRemaining = GAME_DURATION_SECONDS;
 let timerId = null;
 let gameStartTimeoutId = null;
+let duelServerOffset = 0;
 let brushColor = DEFAULT_BRUSH_COLOR;
 let brushSize = DEFAULT_BRUSH_SIZE;
 let isEraserActive = false;
@@ -264,6 +265,7 @@ function handleSoloMode() {
     theme: getRandomTheme(),
     opponentNickname: t('soloOpponent'),
     durationSeconds: GAME_DURATION_SECONDS,
+    serverNow: Date.now(),
     startsAt,
     endsAt: startsAt + GAME_DURATION_SECONDS * 1000,
   });
@@ -325,6 +327,7 @@ function handleReadyClick() {
 }
 
 function startGame(payload) {
+  duelServerOffset = payload.serverNow ? payload.serverNow - Date.now() : 0;
   currentRoomCode = payload.roomCode;
   currentTheme = payload.theme;
   currentOpponentNickname = payload.opponentNickname;
@@ -349,7 +352,7 @@ function startGame(payload) {
   canvas.classList.add('is-locked');
   statusMessage.textContent = t('preparing');
 
-  const delayUntilStart = Math.max(payload.startsAt - Date.now(), 0);
+  const delayUntilStart = Math.max(payload.startsAt - getSyncedNow(), 0);
 
   gameStartTimeoutId = setTimeout(() => {
     isCanvasLocked = false;
@@ -364,14 +367,24 @@ function startGame(payload) {
 function startTimer(endsAt) {
   clearInterval(timerId);
 
+  updateRemainingTime(endsAt);
+
   timerId = setInterval(() => {
-    timeRemaining = Math.max(Math.ceil((endsAt - Date.now()) / 1000), 0);
-    updateTimerDisplay();
+    updateRemainingTime(endsAt);
 
     if (timeRemaining <= 0) {
       endGame();
     }
   }, 250);
+}
+
+function updateRemainingTime(endsAt) {
+  timeRemaining = Math.max(Math.ceil((endsAt - getSyncedNow()) / 1000), 0);
+  updateTimerDisplay();
+}
+
+function getSyncedNow() {
+  return Date.now() + duelServerOffset;
 }
 
 function endGame() {
@@ -381,6 +394,7 @@ function endGame() {
 
   clearInterval(timerId);
   clearTimeout(gameStartTimeoutId);
+  duelServerOffset = 0;
   isCanvasLocked = true;
   isDrawing = false;
   hasSubmittedDrawing = true;
@@ -532,6 +546,7 @@ function draw(event) {
     return;
   }
 
+  event.preventDefault();
   const position = getCanvasPosition(event);
 
   applyCurrentTool();
@@ -544,6 +559,8 @@ function startDrawing(event) {
     return;
   }
 
+  event.preventDefault();
+  canvas.setPointerCapture?.(event.pointerId);
   isDrawing = true;
   const position = getCanvasPosition(event);
 
@@ -552,9 +569,13 @@ function startDrawing(event) {
   context.moveTo(position.x, position.y);
 }
 
-function stopDrawing() {
+function stopDrawing(event) {
   if (!isDrawing) {
     return;
+  }
+
+  if (event && event.pointerId !== undefined) {
+    canvas.releasePointerCapture?.(event.pointerId);
   }
 
   isDrawing = false;
@@ -819,10 +840,11 @@ brushButton.addEventListener('click', () => setDrawingMode(false));
 eraserButton.addEventListener('click', () => setDrawingMode(true));
 clearButton.addEventListener('click', () => clearCanvas());
 resetButton.addEventListener('click', resetGame);
-canvas.addEventListener('mousedown', startDrawing);
-canvas.addEventListener('mousemove', draw);
-canvas.addEventListener('mouseup', stopDrawing);
-canvas.addEventListener('mouseleave', stopDrawing);
+canvas.addEventListener('pointerdown', startDrawing);
+canvas.addEventListener('pointermove', draw);
+canvas.addEventListener('pointerup', stopDrawing);
+canvas.addEventListener('pointercancel', stopDrawing);
+canvas.addEventListener('pointerleave', stopDrawing);
 
 if (socket) {
   socket.on('room-created', ({ roomCode }) => {

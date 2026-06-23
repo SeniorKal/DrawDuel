@@ -188,6 +188,7 @@ function startDuel(roomCode) {
       theme: room.theme,
       opponentNickname: opponent.nickname,
       durationSeconds: DUEL_DURATION_SECONDS,
+      serverNow: Date.now(),
       startsAt,
       endsAt,
     });
