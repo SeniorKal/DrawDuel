@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Draw Duel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <button id="settingsButton" class="settings-button" type="button" aria-expanded="false" aria-controls="settingsPanel">
+      <span class="settings-icon" aria-hidden="true">⚙</span>
+      <span data-i18n="settingsButton">Ajustes</span>
+    </button>
+
+    <aside id="settingsPanel" class="settings-panel" aria-label="Ajustes do jogo" data-i18n-aria-label="settingsPanelLabel" hidden>
+      <h2 data-i18n="settingsTitle">Ajustes</h2>
+      <div class="language-settings">
+        <span data-i18n="language">Idioma</span>
+        <div class="language-options" aria-label="Idioma" data-i18n-aria-label="language">
+          <button id="ptLanguageButton" class="language-button is-active" type="button" data-language="pt-BR">
+            <span class="flag">🇧🇷</span>
+            <span>PT-BR</span>
+          </button>
+
+          <button id="enLanguageButton" class="language-button" type="button" data-language="en">
+            <span class="flag">🇺🇸</span>
+            <span>EN</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <section id="startScreen" class="card start-card" aria-label="Tela inicial" data-i18n-aria-label="startScreenLabel">
+      <div class="menu-copy">
+        <img class="site-logo" src="images/logo_draw.png" alt="Draw Duel">
+      </div>
+
+      <div class="start-form menu-panel">
+        <label class="nickname-label" for="nicknameInput">
+          <span class="field-icon" aria-hidden="true">⌾</span>
+          <span>Nickname</span>
+        </label>
+        <input id="nicknameInput" type="text" maxlength="20" autocomplete="off" placeholder="Ex: PixelMaster" data-i18n-placeholder="nicknamePlaceholder">
+
+        <div class="mode-options" aria-label="Modos de jogo" data-i18n-aria-label="gameModesLabel">
+          <button id="soloModeButton" type="button" class="mode-button" disabled>
+            <span class="mode-icon mode-icon-solo" aria-hidden="true">▣</span>
+            <span class="mode-copy">
+              <span data-i18n="soloMode">Jogo Solo</span>
+              <small data-i18n="soloModeDescription">Treine contra o tempo</small>
+            </span>
+            <span class="mode-arrow" aria-hidden="true">›</span>
+          </button>
+
+          <button id="friendsModeButton" type="button" class="mode-button" disabled>
+            <span class="mode-icon mode-icon-friends" aria-hidden="true">◎</span>
+            <span class="mode-copy">
+              <span data-i18n="friendsMode">Jogo com Amigos</span>
+              <small data-i18n="friendsModeDescription">Crie ou entre em uma sala</small>
+            </span>
+            <span class="mode-arrow" aria-hidden="true">›</span>
+          </button>
+        </div>
+
+        <div id="privateRoomPanel" class="private-room-panel" hidden>
+          <button id="createRoomButton" type="button" disabled data-i18n="createRoom">Criar Sala</button>
+
+          <label for="roomCodeInput" data-i18n="roomCode">C&oacute;digo da Sala</label>
+          <input id="roomCodeInput" type="text" maxlength="6" autocomplete="off" placeholder="Ex: AB12CD" data-i18n-placeholder="roomCodePlaceholder">
+
+          <button id="joinRoomButton" type="button" disabled data-i18n="joinRoom">Entrar na Sala</button>
+        </div>
+
+        <p id="startMessage" class="form-message" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section id="waitingScreen" class="card waiting-card" aria-label="Sala de espera" data-i18n-aria-label="waitingScreenLabel" hidden>
+      <span class="eyebrow" data-i18n="roomCreated">Sala criada</span>
+      <h2 data-i18n="roomCodeTitle">C&oacute;digo da sala</h2>
+      <strong id="roomCodeDisplay" class="room-code">------</strong>
+      <p data-i18n="waitingPlayer">Aguardando outro jogador...</p>
+    </section>
+
+    <section id="gameScreen" class="card game-card" aria-label="Tela de jogo" data-i18n-aria-label="gameScreenLabel" hidden>
+      <div class="game-topbar">
+        <div>
+          <span class="label" data-i18n="player">Jogador</span>
+          <strong id="playerDisplay">-</strong>
+        </div>
+
+        <div>
+          <span class="label" data-i18n="opponent">Advers&aacute;rio</span>
+          <strong id="opponentDisplay">-</strong>
+        </div>
+
+        <div>
+          <span class="label" data-i18n="theme">Tema</span>
+          <strong id="themeDisplay">-</strong>
+        </div>
+
+        <div>
+          <span class="label" data-i18n="time">Tempo</span>
+          <strong id="timerDisplay">60s</strong>
+        </div>
+      </div>
+
+      <div class="drawing-toolbar" aria-label="Ferramentas de desenho" data-i18n-aria-label="drawingToolsLabel">
+        <label class="tool-field" for="brushColorInput">
+          <span data-i18n="color">Cor</span>
+          <input id="brushColorInput" type="color" value="#111827">
+        </label>
+
+        <label class="tool-field brush-size-field" for="brushSizeInput">
+          <span data-i18n="thickness">Espessura</span>
+          <input id="brushSizeInput" type="range" min="2" max="30" value="5">
+          <strong id="brushSizeDisplay">5px</strong>
+        </label>
+
+        <button id="brushButton" type="button" class="tool-button is-active" data-i18n="brush">Pincel</button>
+        <button id="eraserButton" type="button" class="tool-button" data-i18n="eraser">Borracha</button>
+      </div>
+
+      <canvas id="drawingCanvas" width="800" height="500" aria-label="Canvas de desenho" data-i18n-aria-label="canvasLabel"></canvas>
+
+      <div class="actions">
+        <button id="clearButton" type="button" class="secondary-button" data-i18n="clearDrawing">Limpar Desenho</button>
+        <button id="resetButton" type="button" data-i18n="leaveDuel">Sair do Duelo</button>
+      </div>
+
+      <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="resultScreen" class="card result-card" aria-label="Resultado do duelo" data-i18n-aria-label="resultScreenLabel" hidden>
+      <div class="result-header">
+        <span class="eyebrow" data-i18n="result">Resultado</span>
+        <h2 data-i18n="aiNotImplemented">IA ainda n&atilde;o implementada</h2>
+        <p id="winnerMessage" class="winner-message">Vencedor fake: -</p>
+      </div>
+
+      <div class="result-details">
+        <p><span data-i18n="room">Sala</span><strong id="resultRoom">-</strong></p>
+        <p><span data-i18n="theme">Tema</span><strong id="resultTheme">-</strong></p>
+      </div>
+
+      <div class="result-gallery">
+        <article>
+          <h3 data-i18n="yourDrawing">Seu desenho</h3>
+          <img id="ownResultImage" alt="Seu desenho final" data-i18n-alt="ownDrawingAlt">
+        </article>
+
+        <article id="opponentResultCard">
+          <h3 data-i18n="opponentDrawing">Desenho do advers&aacute;rio</h3>
+          <img id="opponentResultImage" alt="Desenho final do adversario" data-i18n-alt="opponentDrawingAlt">
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
