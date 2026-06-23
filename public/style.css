@@ -1,5 +1,11 @@
 :root {
   --logo-width: 620px;
+  --mode-icon-size: 58px;
+  --mode-icon-image-size: 32px;
+  --mode-icon-color: #eeb7fffd;
+  --mode-icon-background: rgba(255, 255, 255, 0.08);
+  --mode-icon-border: rgba(255, 255, 255, 0.08);
+  --mode-icon-shadow: rgba(59, 130, 246, 0.28);
   --background: #080d24;
   --surface: #10172f;
   --surface-soft: #151e3c;
@@ -310,7 +316,7 @@ body.dark-mode .menu-panel {
 
 .mode-button {
   display: grid;
-  grid-template-columns: 76px 1fr auto;
+  grid-template-columns: calc(var(--mode-icon-size) + 18px) 1fr auto;
   gap: 20px;
   align-items: center;
   width: 100%;
@@ -338,21 +344,39 @@ body.dark-mode .menu-panel {
 }
 
 .mode-icon {
+  --mode-icon-url: none;
   display: grid;
-  width: 58px;
-  height: 58px;
+  width: var(--mode-icon-size);
+  height: var(--mode-icon-size);
   place-items: center;
   border-radius: 16px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 24px rgba(59, 130, 246, 0.28);
+  background: var(--mode-icon-background);
+  box-shadow:
+    inset 0 0 0 1px var(--mode-icon-border),
+    0 0 24px var(--mode-icon-shadow);
+}
+
+.mode-icon::before {
+  content: "";
+  display: block;
+  width: var(--mode-icon-image-size);
+  height: var(--mode-icon-image-size);
+  background: var(--mode-icon-color);
+  -webkit-mask: var(--mode-icon-url) center / contain no-repeat;
+  mask: var(--mode-icon-url) center / contain no-repeat;
+}
+
+.mode-icon-solo {
+  --mode-icon-url: url("images/icon_solo.png");
+}
+
+.mode-icon-multiplayer {
+  --mode-icon-url: url("images/icon_multiplayer.png");
 }
 
 .mode-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  display: none;
 }
 
 .mode-copy {
@@ -756,13 +780,13 @@ button:disabled {
   }
 
   .mode-button {
-    grid-template-columns: 58px 1fr auto;
+    grid-template-columns: calc(var(--mode-icon-size) + 10px) 1fr auto;
     min-height: 92px;
     padding: 16px;
   }
 
   .mode-icon {
-    width: 48px;
-    height: 48px;
+    width: min(48px, var(--mode-icon-size));
+    height: min(48px, var(--mode-icon-size));
   }
 }
