@@ -165,7 +165,7 @@ const THEME_ALIASES = {
   Castelo: 'castle',
 };
 
-const socket = io({ autoConnect: false });
+const socket = window.io ? window.io({ autoConnect: false }) : null;
 
 const settingsButton = document.getElementById('settingsButton');
 const settingsPanel = document.getElementById('settingsPanel');
@@ -424,6 +424,12 @@ function prepareCanvas() {
 }
 
 function connectSocket(callback) {
+  if (!socket) {
+    showStartMessage(t('connectionFailed'), true);
+    updateStartButtons();
+    return;
+  }
+
   setActionButtonsDisabled(true);
   showStartMessage(t('connecting'), false);
 
@@ -440,7 +446,7 @@ function resetGame() {
   clearInterval(timerId);
   clearTimeout(gameStartTimeoutId);
 
-  if (socket.connected) {
+  if (socket && socket.connected) {
     socket.disconnect();
   }
 
@@ -679,14 +685,28 @@ function toggleSettingsPanel() {
   settingsButton.setAttribute('aria-expanded', String(isOpen));
 }
 
-nicknameInput.addEventListener('input', () => {
+function handleMenuInputChange() {
   updateStartButtons();
   showStartMessage('', false);
+}
+
+nicknameInput.addEventListener('input', handleMenuInputChange);
+nicknameInput.addEventListener('change', handleMenuInputChange);
+nicknameInput.addEventListener('keyup', handleMenuInputChange);
+nicknameInput.addEventListener('paste', () => {
+  setTimeout(handleMenuInputChange, 0);
 });
 roomCodeInput.addEventListener('input', () => {
   roomCodeInput.value = getRoomCode();
-  updateStartButtons();
-  showStartMessage('', false);
+  handleMenuInputChange();
+});
+roomCodeInput.addEventListener('change', handleMenuInputChange);
+roomCodeInput.addEventListener('keyup', handleMenuInputChange);
+roomCodeInput.addEventListener('paste', () => {
+  setTimeout(() => {
+    roomCodeInput.value = getRoomCode();
+    handleMenuInputChange();
+  }, 0);
 });
 settingsButton.addEventListener('click', toggleSettingsPanel);
 ptLanguageButton.addEventListener('click', () => setLanguage('pt-BR'));
@@ -710,40 +730,43 @@ canvas.addEventListener('mousemove', draw);
 canvas.addEventListener('mouseup', stopDrawing);
 canvas.addEventListener('mouseleave', stopDrawing);
 
-socket.on('room-created', ({ roomCode }) => {
-  currentRoomCode = roomCode;
-  roomCodeDisplay.textContent = roomCode;
-  startScreen.hidden = true;
-  waitingScreen.hidden = false;
-  showStartMessage('', false);
-});
+if (socket) {
+  socket.on('room-created', ({ roomCode }) => {
+    currentRoomCode = roomCode;
+    roomCodeDisplay.textContent = roomCode;
+    startScreen.hidden = true;
+    waitingScreen.hidden = false;
+    showStartMessage('', false);
+  });
 
-socket.on('room-joined', ({ roomCode }) => {
-  currentRoomCode = roomCode;
-  showStartMessage(t('joiningRoom'), false);
-});
+  socket.on('room-joined', ({ roomCode }) => {
+    currentRoomCode = roomCode;
+    showStartMessage(t('joiningRoom'), false);
+  });
 
-socket.on('duel-started', startGame);
-socket.on('drawings-ready', showResult);
+  socket.on('duel-started', startGame);
+  socket.on('drawings-ready', showResult);
 
-socket.on('room-error', ({ messageKey, message }) => {
-  const translatedMessage = messageKey ? t(messageKey) : message;
+  socket.on('room-error', ({ messageKey, message }) => {
+    const translatedMessage = messageKey ? t(messageKey) : message;
 
-  showStartMessage(translatedMessage, true);
-  statusMessage.textContent = translatedMessage;
-  resetGame();
-  showStartMessage(translatedMessage, true);
-});
+    showStartMessage(translatedMessage, true);
+    statusMessage.textContent = translatedMessage;
+    resetGame();
+    showStartMessage(translatedMessage, true);
+  });
 
-socket.on('connect_error', () => {
-  showStartMessage(t('connectionFailed'), true);
-  updateStartButtons();
-});
+  socket.on('connect_error', () => {
+    showStartMessage(t('connectionFailed'), true);
+    updateStartButtons();
+  });
+}
 
 clearCanvas(true);
 resetDrawingTools();
 updateTimerDisplay();
 updateStartButtons();
+window.addEventListener('pageshow', updateStartButtons);
 
 const savedLanguage = localStorage.getItem('drawDuelLanguage') || 'pt-BR';
 setLanguage(savedLanguage);
