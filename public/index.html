@@ -80,7 +80,10 @@
       <span class="eyebrow" data-i18n="roomCreated">Sala criada</span>
       <h2 data-i18n="roomCodeTitle">C&oacute;digo da sala</h2>
       <strong id="roomCodeDisplay" class="room-code">------</strong>
-      <p data-i18n="waitingPlayer">Aguardando outro jogador...</p>
+      <p id="waitingRoomMessage" data-i18n="waitingPlayer">Aguardando outro jogador...</p>
+      <div id="waitingPlayersList" class="waiting-players" aria-label="Jogadores na sala" data-i18n-aria-label="playersInRoomLabel"></div>
+      <p id="readyStatusMessage" class="ready-status" role="status" aria-live="polite"></p>
+      <button id="readyButton" type="button" data-i18n="readyButton" disabled>Pronto</button>
       <button id="backToMenuButton" type="button" class="secondary-button waiting-back-button" data-i18n="backToMenu">Voltar ao Menu</button>
     </section>
 
@@ -155,6 +158,10 @@
           <h3 data-i18n="opponentDrawing">Desenho do advers&aacute;rio</h3>
           <img id="opponentResultImage" alt="Desenho final do adversario" data-i18n-alt="opponentDrawingAlt">
         </article>
+      </div>
+
+      <div class="actions">
+        <button id="resultBackToMenuButton" type="button" data-i18n="backToMenu">Voltar ao Menu</button>
       </div>
     </section>
   </main>

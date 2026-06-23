@@ -77,6 +77,14 @@ const TRANSLATIONS = {
     duelUnavailable: 'Duelo n\u00e3o encontrado ou j\u00e1 encerrado.',
     playerNotInRoom: 'Jogador n\u00e3o pertence a esta sala.',
     opponentLeft: 'O advers\u00e1rio saiu da sala. Crie ou entre em uma nova sala.',
+    playersInRoomLabel: 'Jogadores na sala',
+    readyButton: 'Pronto',
+    readyWaitingOpponent: 'Aguardando outro jogador ficar pronto...',
+    readyWaitingYou: 'Clique em pronto para iniciar o duelo.',
+    waitingSecondPlayer: 'Aguardando outro jogador entrar...',
+    waitingRoomReady: 'Os dois jogadores est\u00e3o na sala.',
+    readyState: 'Pronto',
+    notReadyState: 'Aguardando',
   },
   en: {
     settingsButton: 'Settings',
@@ -142,6 +150,14 @@ const TRANSLATIONS = {
     duelUnavailable: 'Duel not found or already finished.',
     playerNotInRoom: 'Player does not belong to this room.',
     opponentLeft: 'The opponent left the room. Create or join a new room.',
+    playersInRoomLabel: 'Players in room',
+    readyButton: 'Ready',
+    readyWaitingOpponent: 'Waiting for the other player to get ready...',
+    readyWaitingYou: 'Click ready to start the duel.',
+    waitingSecondPlayer: 'Waiting for another player to join...',
+    waitingRoomReady: 'Both players are in the room.',
+    readyState: 'Ready',
+    notReadyState: 'Waiting',
   },
 };
 
@@ -184,6 +200,10 @@ const createRoomButton = document.getElementById('createRoomButton');
 const joinRoomButton = document.getElementById('joinRoomButton');
 const startMessage = document.getElementById('startMessage');
 const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+const waitingRoomMessage = document.getElementById('waitingRoomMessage');
+const waitingPlayersList = document.getElementById('waitingPlayersList');
+const readyButton = document.getElementById('readyButton');
+const readyStatusMessage = document.getElementById('readyStatusMessage');
 const backToMenuButton = document.getElementById('backToMenuButton');
 const canvas = document.getElementById('drawingCanvas');
 const context = canvas.getContext('2d');
@@ -205,6 +225,7 @@ const winnerMessage = document.getElementById('winnerMessage');
 const ownResultImage = document.getElementById('ownResultImage');
 const opponentResultCard = document.getElementById('opponentResultCard');
 const opponentResultImage = document.getElementById('opponentResultImage');
+const resultBackToMenuButton = document.getElementById('resultBackToMenuButton');
 
 let currentPlayer = '';
 let currentRoomCode = '';
@@ -222,6 +243,7 @@ let isEraserActive = false;
 let isSoloMode = false;
 let currentLanguage = 'pt-BR';
 let lastWinnerNickname = '';
+let latestRoomPlayers = [];
 
 function handleSoloMode() {
   const nickname = getNickname();
@@ -293,10 +315,20 @@ function handleJoinRoom() {
   });
 }
 
+function handleReadyClick() {
+  if (!socket || !currentRoomCode) {
+    return;
+  }
+
+  readyButton.disabled = true;
+  socket.emit('player-ready');
+}
+
 function startGame(payload) {
   currentRoomCode = payload.roomCode;
   currentTheme = payload.theme;
   currentOpponentNickname = payload.opponentNickname;
+  latestRoomPlayers = [];
   timeRemaining = payload.durationSeconds;
   hasSubmittedDrawing = false;
   isDrawing = false;
@@ -466,6 +498,10 @@ function resetGame() {
   soloModeButton.classList.remove('is-selected');
   friendsModeButton.classList.remove('is-selected');
   roomCodeDisplay.textContent = '------';
+  waitingRoomMessage.textContent = t('waitingPlayer');
+  waitingPlayersList.innerHTML = '';
+  readyButton.disabled = true;
+  readyStatusMessage.textContent = '';
   playerDisplay.textContent = '-';
   opponentDisplay.textContent = '-';
   themeDisplay.textContent = '-';
@@ -618,6 +654,10 @@ function applyLanguage() {
   } else if (winnerMessage.textContent) {
     winnerMessage.textContent = t('fakeWinnerEmpty');
   }
+
+  if (!waitingScreen.hidden && latestRoomPlayers.length > 0) {
+    renderWaitingRoom(latestRoomPlayers);
+  }
 }
 
 function setLanguage(language) {
@@ -685,6 +725,58 @@ function toggleSettingsPanel() {
   settingsButton.setAttribute('aria-expanded', String(isOpen));
 }
 
+function handleRoomState(payload) {
+  currentRoomCode = payload.roomCode;
+  latestRoomPlayers = payload.players || [];
+
+  startScreen.hidden = true;
+  waitingScreen.hidden = false;
+  gameScreen.hidden = true;
+  resultScreen.hidden = true;
+  roomCodeDisplay.textContent = payload.roomCode;
+  renderWaitingRoom(latestRoomPlayers);
+}
+
+function renderWaitingRoom(players) {
+  const ownPlayer = players.find((player) => player.nickname === currentPlayer);
+  const hasTwoPlayers = players.length === 2;
+  const isOwnPlayerReady = Boolean(ownPlayer && ownPlayer.ready);
+
+  waitingPlayersList.innerHTML = players.map((player) => {
+    const statusKey = player.ready ? 'readyState' : 'notReadyState';
+    const statusClass = player.ready ? 'is-ready' : 'is-waiting';
+
+    return `
+      <div class="waiting-player">
+        <strong>${escapeHtml(player.nickname)}</strong>
+        <span class="${statusClass}">${t(statusKey)}</span>
+      </div>
+    `;
+  }).join('');
+
+  if (!hasTwoPlayers) {
+    waitingRoomMessage.textContent = t('waitingSecondPlayer');
+    readyButton.disabled = true;
+    readyStatusMessage.textContent = t('waitingSecondPlayer');
+    return;
+  }
+
+  waitingRoomMessage.textContent = t('waitingRoomReady');
+  readyButton.disabled = isOwnPlayerReady;
+  readyStatusMessage.textContent = isOwnPlayerReady
+    ? t('readyWaitingOpponent')
+    : t('readyWaitingYou');
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 function handleMenuInputChange() {
   updateStartButtons();
   showStartMessage('', false);
@@ -715,7 +807,9 @@ soloModeButton.addEventListener('click', handleSoloMode);
 friendsModeButton.addEventListener('click', handleFriendsMode);
 createRoomButton.addEventListener('click', handleCreateRoom);
 joinRoomButton.addEventListener('click', handleJoinRoom);
+readyButton.addEventListener('click', handleReadyClick);
 backToMenuButton.addEventListener('click', resetGame);
+resultBackToMenuButton.addEventListener('click', resetGame);
 brushColorInput.addEventListener('input', () => {
   brushColor = brushColorInput.value;
   setDrawingMode(false);
@@ -741,9 +835,9 @@ if (socket) {
 
   socket.on('room-joined', ({ roomCode }) => {
     currentRoomCode = roomCode;
-    showStartMessage(t('joiningRoom'), false);
   });
 
+  socket.on('room-state', handleRoomState);
   socket.on('duel-started', startGame);
   socket.on('drawings-ready', showResult);
 

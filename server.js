@@ -38,6 +38,23 @@ function emitRoomError(socketOrRoom, messageKey, fallbackMessage) {
   });
 }
 
+function emitRoomState(roomCode) {
+  const room = rooms.get(roomCode);
+
+  if (!room) {
+    return;
+  }
+
+  io.to(roomCode).emit('room-state', {
+    roomCode,
+    status: room.status,
+    players: room.players.map((player) => ({
+      nickname: player.nickname,
+      ready: player.ready,
+    })),
+  });
+}
+
 function generateRoomCode() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let roomCode = '';
@@ -64,7 +81,7 @@ function createRoom(socket, nickname) {
 
   const room = {
     code: roomCode,
-    players: [{ socketId: socket.id, nickname }],
+    players: [{ socketId: socket.id, nickname, ready: false }],
     theme: null,
     drawings: [],
     status: 'waiting',
@@ -77,6 +94,7 @@ function createRoom(socket, nickname) {
 
   console.log(`sala criada: ${roomCode} por ${nickname}`);
   socket.emit('room-created', { roomCode });
+  emitRoomState(roomCode);
 }
 
 function joinRoom(socket, nickname, requestedRoomCode) {
@@ -104,15 +122,42 @@ function joinRoom(socket, nickname, requestedRoomCode) {
     return;
   }
 
-  room.players.push({ socketId: socket.id, nickname });
+  room.players.push({ socketId: socket.id, nickname, ready: false });
   socket.join(roomCode);
   socket.data.roomCode = roomCode;
   socket.data.nickname = nickname;
 
   console.log(`jogador entrou na sala: ${nickname} em ${roomCode}`);
   socket.emit('room-joined', { roomCode });
+  emitRoomState(roomCode);
+}
 
-  if (room.players.length === 2) {
+function markPlayerReady(socket) {
+  const { roomCode } = socket.data;
+
+  if (!roomCode || !rooms.has(roomCode)) {
+    emitRoomError(socket, 'roomNotFound', 'Sala n\u00e3o encontrada.');
+    return;
+  }
+
+  const room = rooms.get(roomCode);
+
+  if (room.status !== 'waiting') {
+    emitRoomError(socket, 'roomFullOrStarted', 'Sala cheia ou duelo j\u00e1 iniciado.');
+    return;
+  }
+
+  const player = room.players.find((item) => item.socketId === socket.id);
+
+  if (!player) {
+    emitRoomError(socket, 'playerNotInRoom', 'Jogador n\u00e3o pertence a esta sala.');
+    return;
+  }
+
+  player.ready = true;
+  emitRoomState(roomCode);
+
+  if (room.players.length === 2 && room.players.every((item) => item.ready)) {
     startDuel(roomCode);
   }
 }
@@ -128,6 +173,9 @@ function startDuel(roomCode) {
   room.theme = THEMES[themeIndex];
   room.status = 'playing';
   room.drawings = [];
+  room.players.forEach((player) => {
+    player.ready = false;
+  });
 
   const startsAt = Date.now() + 1000;
   const endsAt = startsAt + DUEL_DURATION_SECONDS * 1000;
@@ -244,6 +292,10 @@ io.on('connection', (socket) => {
 
   socket.on('join-room', ({ nickname, roomCode }) => {
     joinRoom(socket, String(nickname || '').trim(), String(roomCode || ''));
+  });
+
+  socket.on('player-ready', () => {
+    markPlayerReady(socket);
   });
 
   socket.on('submit-drawing', (payload) => {
