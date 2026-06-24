@@ -1,9 +1,11 @@
 const GAME_DURATION_SECONDS = 60;
 const DEFAULT_BRUSH_COLOR = '#111827';
-const DEFAULT_BRUSH_SIZE = 5;
+const DEFAULT_BRUSH_SIZE = 8;
 const DEFAULT_BRUSH_OPACITY = 1;
 const ERASER_COLOR = '#ffffff';
 const MAX_HISTORY_STEPS = 20;
+const BUCKET_FILL_TOLERANCE = 88;
+const BUCKET_EDGE_TOLERANCE = 126;
 const THEMES = [
   'cat',
   'dog',
@@ -47,6 +49,8 @@ const TRANSLATIONS = {
     color: 'Cor',
     customColor: 'Cor personalizada',
     presetColors: 'Cores predefinidas',
+    brushSizes: 'Tamanhos do pincel',
+    brushOpacity: 'Opacidade do pincel',
     thickness: 'Espessura',
     size: 'Tamanho',
     transparency: 'Transpar\u00eancia',
@@ -134,6 +138,8 @@ const TRANSLATIONS = {
     color: 'Color',
     customColor: 'Custom color',
     presetColors: 'Preset colors',
+    brushSizes: 'Brush sizes',
+    brushOpacity: 'Brush opacity',
     thickness: 'Thickness',
     size: 'Size',
     transparency: 'Transparency',
@@ -242,20 +248,18 @@ const opponentDisplay = document.getElementById('opponentDisplay');
 const themeDisplay = document.getElementById('themeDisplay');
 const timerDisplay = document.getElementById('timerDisplay');
 const brushColorInput = document.getElementById('brushColorInput');
-const brushSizeInput = document.getElementById('brushSizeInput');
-const brushSizeDisplay = document.getElementById('brushSizeDisplay');
-const brushOpacityInput = document.getElementById('brushOpacityInput');
-const brushOpacityDisplay = document.getElementById('brushOpacityDisplay');
+const brushSizeOptions = Array.from(document.querySelectorAll('.size-option'));
+const brushOpacityOptions = Array.from(document.querySelectorAll('.opacity-option'));
 const brushButton = document.getElementById('brushButton');
 const eraserButton = document.getElementById('eraserButton');
 const bucketButton = document.getElementById('bucketButton');
 const undoButton = document.getElementById('undoButton');
 const redoButton = document.getElementById('redoButton');
-const clearButton = document.getElementById('clearButton');
 const bottomClearButton = document.getElementById('bottomClearButton');
 const colorSwatches = Array.from(document.querySelectorAll('.color-swatch'));
 const resetButton = document.getElementById('resetButton');
 const statusMessage = document.getElementById('statusMessage');
+const eraserCursor = document.getElementById('eraserCursor');
 const resultRoom = document.getElementById('resultRoom');
 const resultTheme = document.getElementById('resultTheme');
 const winnerMessage = document.getElementById('winnerMessage');
@@ -274,6 +278,9 @@ let currentRoomCode = '';
 let currentTheme = '';
 let currentOpponentNickname = '';
 let isDrawing = false;
+let lastDrawPosition = null;
+let strokeBaseImageData = null;
+let strokePoints = [];
 let isCanvasLocked = true;
 let hasSubmittedDrawing = false;
 let timeRemaining = GAME_DURATION_SECONDS;
@@ -296,6 +303,18 @@ let latestJudgeReasons = {
 let undoStack = [];
 let redoStack = [];
 let areToolControlsDisabled = true;
+
+function hexToRgba(hex, alpha = 1) {
+  const normalizedHex = hex.replace('#', '');
+  const bigint = parseInt(normalizedHex, 16);
+
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255,
+    a: Math.round(alpha * 255),
+  };
+}
 
 function handleSoloMode() {
   const nickname = getNickname();
@@ -395,11 +414,11 @@ function startGame(payload) {
   updateGameInfo(payload.opponentNickname);
   updateTimerDisplay();
 
+  setSettingsVisible(false);
   startScreen.hidden = true;
   waitingScreen.hidden = true;
   resultScreen.hidden = true;
   gameScreen.hidden = false;
-  clearButton.disabled = true;
   bottomClearButton.disabled = true;
   setToolControlsDisabled(true);
   canvas.classList.add('is-locked');
@@ -409,7 +428,6 @@ function startGame(payload) {
 
   gameStartTimeoutId = setTimeout(() => {
     isCanvasLocked = false;
-    clearButton.disabled = false;
     bottomClearButton.disabled = false;
     setToolControlsDisabled(false);
     canvas.classList.remove('is-locked');
@@ -454,7 +472,6 @@ function endGame() {
   hasSubmittedDrawing = true;
 
   canvas.classList.add('is-locked');
-  clearButton.disabled = true;
   bottomClearButton.disabled = true;
   setToolControlsDisabled(true);
   statusMessage.textContent = t('timeEndedSending');
@@ -511,6 +528,7 @@ function showResult(payload) {
 
   gameScreen.hidden = true;
   resultScreen.hidden = false;
+  setSettingsVisible(false);
   statusMessage.textContent = '';
   resultBackToMenuButton.textContent = t('backToRoom');
   resultBackToMenuButton.dataset.resultAction = 'room';
@@ -543,6 +561,7 @@ function showDuelResult(payload) {
 
   gameScreen.hidden = true;
   resultScreen.hidden = false;
+  setSettingsVisible(false);
   statusMessage.textContent = '';
   resultBackToMenuButton.textContent = t('backToRoom');
   resultBackToMenuButton.dataset.resultAction = 'room';
@@ -614,6 +633,9 @@ function resetGame() {
   currentTheme = '';
   currentOpponentNickname = '';
   isDrawing = false;
+  lastDrawPosition = null;
+  strokeBaseImageData = null;
+  strokePoints = [];
   isCanvasLocked = true;
   hasSubmittedDrawing = false;
   timeRemaining = GAME_DURATION_SECONDS;
@@ -652,7 +674,6 @@ function resetGame() {
   resetDrawingTools();
 
   clearCanvas(true);
-  clearButton.disabled = true;
   bottomClearButton.disabled = true;
   updateTimerDisplay();
   updateStartButtons();
@@ -662,20 +683,23 @@ function resetGame() {
   waitingScreen.hidden = true;
   gameScreen.hidden = true;
   resultScreen.hidden = true;
+  setSettingsVisible(true);
   nicknameInput.focus();
 }
 
 function draw(event) {
-  if (!isDrawing || isCanvasLocked) {
+  updateEraserCursor(event);
+
+  if (!isDrawing || isCanvasLocked || currentTool === 'bucket') {
     return;
   }
 
   event.preventDefault();
   const position = getCanvasPosition(event);
 
-  applyCurrentTool();
-  context.lineTo(position.x, position.y);
-  context.stroke();
+  strokePoints.push(position);
+  renderCurrentStroke();
+  lastDrawPosition = position;
 }
 
 function startDrawing(event) {
@@ -684,14 +708,22 @@ function startDrawing(event) {
   }
 
   event.preventDefault();
-  canvas.setPointerCapture?.(event.pointerId);
-  isDrawing = true;
   const position = getCanvasPosition(event);
 
+  if (currentTool === 'bucket') {
+    fillAreaAtPosition(position);
+    return;
+  }
+
+  canvas.setPointerCapture?.(event.pointerId);
+  isDrawing = true;
+
   saveCanvasState();
+  strokeBaseImageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  strokePoints = [position];
   applyCurrentTool();
-  context.beginPath();
-  context.moveTo(position.x, position.y);
+  lastDrawPosition = position;
+  renderCurrentStroke();
 }
 
 function stopDrawing(event) {
@@ -704,6 +736,55 @@ function stopDrawing(event) {
   }
 
   isDrawing = false;
+  lastDrawPosition = null;
+  strokeBaseImageData = null;
+  strokePoints = [];
+  context.closePath();
+}
+
+function updateEraserCursor(event) {
+  if (currentTool !== 'eraser' || isCanvasLocked) {
+    hideEraserCursor();
+    return;
+  }
+
+  const canvasBounds = canvas.getBoundingClientRect();
+  const stageBounds = canvas.parentElement.getBoundingClientRect();
+  const scale = canvasBounds.width / canvas.width;
+  const cursorSize = Math.max(brushSize * scale, 8);
+
+  eraserCursor.style.width = `${cursorSize}px`;
+  eraserCursor.style.height = `${cursorSize}px`;
+  eraserCursor.style.left = `${event.clientX - stageBounds.left}px`;
+  eraserCursor.style.top = `${event.clientY - stageBounds.top}px`;
+  eraserCursor.classList.add('is-visible');
+}
+
+function hideEraserCursor() {
+  eraserCursor.classList.remove('is-visible');
+}
+
+function renderCurrentStroke() {
+  if (!strokeBaseImageData || strokePoints.length === 0) {
+    return;
+  }
+
+  context.globalAlpha = 1;
+  context.globalCompositeOperation = 'source-over';
+  context.putImageData(strokeBaseImageData, 0, 0);
+  applyCurrentTool();
+  context.beginPath();
+  context.moveTo(strokePoints[0].x, strokePoints[0].y);
+
+  if (strokePoints.length === 1) {
+    context.lineTo(strokePoints[0].x + 0.01, strokePoints[0].y + 0.01);
+  } else {
+    strokePoints.slice(1).forEach((point) => {
+      context.lineTo(point.x, point.y);
+    });
+  }
+
+  context.stroke();
   context.closePath();
 }
 
@@ -848,14 +929,22 @@ function applyCurrentTool() {
   context.lineJoin = 'round';
 }
 
-function updateBrushSize() {
-  brushSize = Number(brushSizeInput.value);
-  brushSizeDisplay.textContent = `${brushSize}px`;
+function updateBrushSize(size = brushSize) {
+  brushSize = Number(size);
+  brushSizeOptions.forEach((option) => {
+    option.classList.toggle('is-active', Number(option.dataset.size) === brushSize);
+  });
 }
 
 function updateBrushOpacity() {
-  brushOpacity = Number(brushOpacityInput.value) / 100;
-  brushOpacityDisplay.textContent = `${brushOpacityInput.value}%`;
+  brushOpacityOptions.forEach((option) => {
+    option.classList.toggle('is-active', Number(option.dataset.opacity) === Math.round(brushOpacity * 100));
+  });
+}
+
+function setBrushOpacity(opacityValue) {
+  brushOpacity = Number(opacityValue) / 100;
+  updateBrushOpacity();
 }
 
 function setDrawingMode(isEraser) {
@@ -869,29 +958,145 @@ function setDrawingTool(tool) {
   eraserButton.classList.toggle('is-active', tool === 'eraser');
   bucketButton.classList.toggle('is-active', tool === 'bucket');
   canvas.classList.toggle('is-erasing', tool === 'eraser');
+
+  if (tool !== 'eraser') {
+    hideEraserCursor();
+  }
+
   applyCurrentTool();
 }
 
 function setBrushColor(color) {
+  const selectedTool = currentTool;
+
   brushColor = color;
   brushColorInput.value = color;
   colorSwatches.forEach((swatch) => {
     swatch.classList.toggle('is-active', swatch.dataset.color.toLowerCase() === color.toLowerCase());
   });
+
+  if (selectedTool === 'bucket' || selectedTool === 'eraser') {
+    setDrawingTool(selectedTool);
+    return;
+  }
+
   setDrawingTool('brush');
 }
 
-function fillCanvasWithCurrentColor() {
+function fillAreaAtPosition(position) {
   if (isCanvasLocked) {
     return;
   }
 
   saveCanvasState();
-  context.globalAlpha = brushOpacity;
-  context.globalCompositeOperation = 'source-over';
-  context.fillStyle = brushColor;
-  context.fillRect(0, 0, canvas.width, canvas.height);
+  floodFill(Math.floor(position.x), Math.floor(position.y), hexToRgba(brushColor, brushOpacity));
   applyCurrentTool();
+}
+
+function floodFill(startX, startY, fillColor) {
+  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  const { data, width, height } = imageData;
+  const originalData = new Uint8ClampedArray(data);
+  const startIndex = (startY * width + startX) * 4;
+  const targetColor = {
+    r: data[startIndex],
+    g: data[startIndex + 1],
+    b: data[startIndex + 2],
+    a: data[startIndex + 3],
+  };
+  const filledPixels = new Uint8Array(width * height);
+
+  if (colorsAreClose(targetColor, fillColor, 0)) {
+    return;
+  }
+
+  const pixelsToCheck = [[startX, startY]];
+
+  while (pixelsToCheck.length > 0) {
+    const [x, y] = pixelsToCheck.pop();
+
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+      continue;
+    }
+
+    const pixelIndex = y * width + x;
+    const index = pixelIndex * 4;
+
+    if (filledPixels[pixelIndex]) {
+      continue;
+    }
+
+    const currentColor = {
+      r: originalData[index],
+      g: originalData[index + 1],
+      b: originalData[index + 2],
+      a: originalData[index + 3],
+    };
+
+    if (!colorsAreClose(currentColor, targetColor, BUCKET_FILL_TOLERANCE)) {
+      continue;
+    }
+
+    paintPixel(data, index, fillColor);
+    filledPixels[pixelIndex] = 1;
+
+    pixelsToCheck.push([x + 1, y]);
+    pixelsToCheck.push([x - 1, y]);
+    pixelsToCheck.push([x, y + 1]);
+    pixelsToCheck.push([x, y - 1]);
+  }
+
+  softenBucketEdges(data, originalData, filledPixels, width, height, targetColor, fillColor);
+  context.putImageData(imageData, 0, 0);
+}
+
+function softenBucketEdges(data, originalData, filledPixels, width, height, targetColor, fillColor) {
+  const pixelsToSoften = [];
+
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const pixelIndex = y * width + x;
+
+      if (filledPixels[pixelIndex] || !hasFilledNeighbor(filledPixels, width, pixelIndex)) {
+        continue;
+      }
+
+      const index = pixelIndex * 4;
+      const currentColor = {
+        r: originalData[index],
+        g: originalData[index + 1],
+        b: originalData[index + 2],
+        a: originalData[index + 3],
+      };
+
+      if (colorsAreClose(currentColor, targetColor, BUCKET_EDGE_TOLERANCE)) {
+        pixelsToSoften.push(index);
+      }
+    }
+  }
+
+  pixelsToSoften.forEach((index) => paintPixel(data, index, fillColor));
+}
+
+function hasFilledNeighbor(filledPixels, width, pixelIndex) {
+  return filledPixels[pixelIndex - 1]
+    || filledPixels[pixelIndex + 1]
+    || filledPixels[pixelIndex - width]
+    || filledPixels[pixelIndex + width];
+}
+
+function paintPixel(data, index, fillColor) {
+  data[index] = fillColor.r;
+  data[index + 1] = fillColor.g;
+  data[index + 2] = fillColor.b;
+  data[index + 3] = fillColor.a;
+}
+
+function colorsAreClose(colorA, colorB, tolerance) {
+  return Math.abs(colorA.r - colorB.r) <= tolerance
+    && Math.abs(colorA.g - colorB.g) <= tolerance
+    && Math.abs(colorA.b - colorB.b) <= tolerance
+    && Math.abs(colorA.a - colorB.a) <= tolerance;
 }
 
 function saveCanvasState() {
@@ -946,14 +1151,23 @@ function updateHistoryButtons() {
 function setToolControlsDisabled(isDisabled) {
   areToolControlsDisabled = isDisabled;
   brushColorInput.disabled = isDisabled;
-  brushSizeInput.disabled = isDisabled;
-  brushOpacityInput.disabled = isDisabled;
   brushButton.disabled = isDisabled;
   eraserButton.disabled = isDisabled;
   bucketButton.disabled = isDisabled;
   colorSwatches.forEach((swatch) => {
     swatch.disabled = isDisabled;
   });
+  brushSizeOptions.forEach((option) => {
+    option.disabled = isDisabled;
+  });
+  brushOpacityOptions.forEach((option) => {
+    option.disabled = isDisabled;
+  });
+
+  if (isDisabled) {
+    hideEraserCursor();
+  }
+
   updateHistoryButtons();
 }
 
@@ -961,10 +1175,9 @@ function resetDrawingTools() {
   brushColor = DEFAULT_BRUSH_COLOR;
   brushSize = DEFAULT_BRUSH_SIZE;
   brushOpacity = DEFAULT_BRUSH_OPACITY;
+  currentTool = 'brush';
   brushColorInput.value = DEFAULT_BRUSH_COLOR;
-  brushSizeInput.value = String(DEFAULT_BRUSH_SIZE);
-  brushOpacityInput.value = String(DEFAULT_BRUSH_OPACITY * 100);
-  updateBrushSize();
+  updateBrushSize(DEFAULT_BRUSH_SIZE);
   updateBrushOpacity();
   setBrushColor(DEFAULT_BRUSH_COLOR);
   resetCanvasHistory();
@@ -983,10 +1196,20 @@ function toggleSettingsPanel() {
   settingsButton.setAttribute('aria-expanded', String(isOpen));
 }
 
+function setSettingsVisible(isVisible) {
+  settingsButton.hidden = !isVisible;
+
+  if (!isVisible) {
+    settingsPanel.hidden = true;
+    settingsButton.setAttribute('aria-expanded', 'false');
+  }
+}
+
 function handleRoomState(payload) {
   currentRoomCode = payload.roomCode;
   latestRoomPlayers = payload.players || [];
 
+  setSettingsVisible(false);
   startScreen.hidden = true;
   waitingScreen.hidden = false;
   gameScreen.hidden = true;
@@ -1042,6 +1265,28 @@ function handleMenuInputChange() {
   showStartMessage('', false);
 }
 
+function handleKeyboardShortcuts(event) {
+  const activeTagName = document.activeElement?.tagName?.toLowerCase();
+  const isTyping = activeTagName === 'input' || activeTagName === 'textarea';
+
+  if (isTyping || !event.ctrlKey) {
+    return;
+  }
+
+  const key = event.key.toLowerCase();
+
+  if (key === 'z' && !event.shiftKey) {
+    event.preventDefault();
+    undoDrawing();
+    return;
+  }
+
+  if (key === 'y' || (key === 'z' && event.shiftKey)) {
+    event.preventDefault();
+    redoDrawing();
+  }
+}
+
 nicknameInput.addEventListener('input', handleMenuInputChange);
 nicknameInput.addEventListener('change', handleMenuInputChange);
 nicknameInput.addEventListener('keyup', handleMenuInputChange);
@@ -1076,18 +1321,19 @@ brushColorInput.addEventListener('input', () => {
 colorSwatches.forEach((swatch) => {
   swatch.addEventListener('click', () => setBrushColor(swatch.dataset.color));
 });
-brushSizeInput.addEventListener('input', updateBrushSize);
-brushOpacityInput.addEventListener('input', updateBrushOpacity);
+brushSizeOptions.forEach((option) => {
+  option.addEventListener('click', () => updateBrushSize(option.dataset.size));
+});
+brushOpacityOptions.forEach((option) => {
+  option.addEventListener('click', () => setBrushOpacity(option.dataset.opacity));
+});
 brushButton.addEventListener('click', () => setDrawingMode(false));
 eraserButton.addEventListener('click', () => setDrawingMode(true));
 bucketButton.addEventListener('click', () => {
   setDrawingTool('bucket');
-  fillCanvasWithCurrentColor();
-  setDrawingTool('brush');
 });
 undoButton.addEventListener('click', undoDrawing);
 redoButton.addEventListener('click', redoDrawing);
-clearButton.addEventListener('click', () => clearCanvas());
 bottomClearButton.addEventListener('click', () => clearCanvas());
 resetButton.addEventListener('click', resetGame);
 canvas.addEventListener('pointerdown', startDrawing);
@@ -1095,11 +1341,14 @@ canvas.addEventListener('pointermove', draw);
 canvas.addEventListener('pointerup', stopDrawing);
 canvas.addEventListener('pointercancel', stopDrawing);
 canvas.addEventListener('pointerleave', stopDrawing);
+canvas.addEventListener('pointerleave', hideEraserCursor);
+document.addEventListener('keydown', handleKeyboardShortcuts);
 
 if (socket) {
   socket.on('room-created', ({ roomCode }) => {
     currentRoomCode = roomCode;
     roomCodeDisplay.textContent = roomCode;
+    setSettingsVisible(false);
     startScreen.hidden = true;
     waitingScreen.hidden = false;
     showStartMessage('', false);

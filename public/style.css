@@ -485,11 +485,11 @@ input:focus {
 
 .drawing-toolbar {
   display: grid;
-  grid-template-columns: 1.1fr 1.8fr 1fr 1.1fr 1.4fr;
-  gap: 18px;
-  align-items: stretch;
-  margin: 0 0 22px;
-  padding: 18px 22px;
+  grid-template-columns: 230px minmax(390px, 1fr) 150px 220px 150px;
+  gap: 10px;
+  align-items: start;
+  margin: 0 0 16px;
+  padding: 12px 14px;
   background:
     linear-gradient(135deg, rgba(20, 29, 66, 0.94), rgba(13, 19, 47, 0.94)),
     var(--surface);
@@ -501,15 +501,19 @@ input:focus {
 .toolbar-group {
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
-  padding-right: 18px;
-  border-right: 1px solid rgba(134, 99, 255, 0.18);
+  min-height: 72px;
+  padding-right: 10px;
 }
 
 .toolbar-group:last-child {
   padding-right: 0;
-  border-right: 0;
+}
+
+.size-group {
+  position: relative;
+  transform: translateX(-10px);
 }
 
 .toolbar-title {
@@ -521,18 +525,23 @@ input:focus {
 
 .tool-button-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-wrap: nowrap;
+  gap: 8px;
 }
 
 .compact-actions {
-  justify-content: space-between;
+  justify-content: flex-start;
+}
+
+.tools-group .tool-button-list,
+.actions-group .tool-button-list {
+  align-items: center;
 }
 
 .color-tools {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -540,16 +549,17 @@ input:focus {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 9px;
+  gap: 7px;
+  min-width: 0;
 }
 
 .tool-button {
   display: grid;
-  min-width: 72px;
-  min-height: 68px;
+  min-width: 58px;
+  min-height: 48px;
   place-items: center;
-  gap: 6px;
-  padding: 10px 12px;
+  gap: 3px;
+  padding: 7px 9px;
   color: #ffffff;
   background: transparent;
   border: 1px solid transparent;
@@ -567,13 +577,21 @@ input:focus {
 }
 
 .tool-icon {
-  font-size: 1.35rem;
+  font-size: 0.98rem;
   line-height: 1;
 }
 
+.tool-icon-image {
+  display: block;
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
 .color-swatch {
-  width: 24px;
-  height: 24px;
+  width: 21px;
+  height: 21px;
   padding: 0;
   background: var(--swatch-color);
   border: 2px solid rgba(255, 255, 255, 0.22);
@@ -587,6 +605,65 @@ input:focus {
   border-color: #ffffff;
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.brush-size-options {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+}
+
+.size-option {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.size-option span {
+  width: var(--dot-size);
+  height: var(--dot-size);
+  background: #ffffff;
+  border-radius: 999px;
+}
+
+.size-option:hover:not(:disabled),
+.size-option.is-active {
+  background: rgba(124, 58, 237, 0.2);
+  border-color: var(--accent);
+  box-shadow: 0 0 18px rgba(177, 83, 255, 0.24);
+}
+
+.opacity-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(42px, 1fr));
+  gap: 6px;
+  align-items: center;
+}
+
+.opacity-option {
+  min-height: 30px;
+  padding: 6px 7px;
+  color: #d9dcff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  box-shadow: none;
+}
+
+.opacity-option:hover:not(:disabled),
+.opacity-option.is-active {
+  color: #ffffff;
+  background: rgba(124, 58, 237, 0.22);
+  border-color: var(--accent);
+  box-shadow: 0 0 18px rgba(177, 83, 255, 0.2);
 }
 
 .range-field {
@@ -605,13 +682,13 @@ input:focus {
 
 .drawing-layout {
   display: grid;
-  grid-template-columns: 230px minmax(360px, 1fr) 230px;
+  grid-template-columns: 230px minmax(360px, 800px);
   gap: 22px;
+  justify-content: center;
   align-items: stretch;
 }
 
-.game-info-panel,
-.drawing-side-panel {
+.game-info-panel {
   min-height: 500px;
   padding: 22px;
   background:
@@ -675,6 +752,7 @@ input:focus {
 .canvas-stage {
   display: grid;
   place-items: center;
+  position: relative;
 }
 
 #drawingCanvas {
@@ -696,7 +774,24 @@ input:focus {
 }
 
 #drawingCanvas.is-erasing {
-  cursor: cell;
+  cursor: none;
+}
+
+.eraser-cursor {
+  position: absolute;
+  z-index: 2;
+  display: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(15, 23, 42, 0.78);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 14px rgba(124, 58, 237, 0.28);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.eraser-cursor.is-visible {
+  display: block;
 }
 
 .actions {
@@ -875,6 +970,21 @@ button:disabled {
   display: none !important;
 }
 
+@media (max-width: 1180px) {
+  .drawing-toolbar {
+    grid-template-columns: 1fr 1.35fr 0.75fr 1fr 0.75fr;
+  }
+
+  .tool-button {
+    min-width: 52px;
+    padding-inline: 7px;
+  }
+
+  .opacity-options {
+    grid-template-columns: repeat(2, minmax(44px, 1fr));
+  }
+}
+
 @media (max-width: 720px) {
   .app {
     width: min(100% - 20px, 1240px);
@@ -903,10 +1013,6 @@ button:disabled {
   .toolbar-group:last-child {
     padding-bottom: 0;
     border-bottom: 0;
-  }
-
-  .drawing-side-panel {
-    display: none;
   }
 
   .game-info-panel {

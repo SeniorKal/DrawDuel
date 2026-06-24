@@ -97,15 +97,15 @@
           <span class="toolbar-title" data-i18n="tools">Ferramentas</span>
           <div class="tool-button-list">
             <button id="brushButton" type="button" class="tool-button is-active">
-              <span class="tool-icon" aria-hidden="true">&#9998;</span>
+              <img class="tool-icon-image" src="images/icon_brush.png" alt="" aria-hidden="true">
               <span data-i18n="brush">Pincel</span>
             </button>
             <button id="eraserButton" type="button" class="tool-button">
-              <span class="tool-icon" aria-hidden="true">&#8999;</span>
+              <img class="tool-icon-image" src="images/icon_rubber.png" alt="" aria-hidden="true">
               <span data-i18n="eraser">Borracha</span>
             </button>
             <button id="bucketButton" type="button" class="tool-button">
-              <span class="tool-icon" aria-hidden="true">&#11044;</span>
+              <img class="tool-icon-image" src="images/icon_bucket.png" alt="" aria-hidden="true">
               <span data-i18n="bucket">Balde</span>
             </button>
           </div>
@@ -116,32 +116,39 @@
           <div class="color-tools">
             <input id="brushColorInput" type="color" value="#111827" aria-label="Cor personalizada" data-i18n-aria-label="customColor">
             <div class="color-palette" aria-label="Cores predefinidas" data-i18n-aria-label="presetColors">
-              <button type="button" class="color-swatch is-active" style="--swatch-color: #111827;" data-color="#111827" aria-label="Preto"></button>
               <button type="button" class="color-swatch" style="--swatch-color: #ffffff;" data-color="#ffffff" aria-label="Branco"></button>
+              <button type="button" class="color-swatch is-active" style="--swatch-color: #111827;" data-color="#111827" aria-label="Preto"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #64748b;" data-color="#64748b" aria-label="Cinza"></button>
               <button type="button" class="color-swatch" style="--swatch-color: #ef4444;" data-color="#ef4444" aria-label="Vermelho"></button>
-              <button type="button" class="color-swatch" style="--swatch-color: #f97316;" data-color="#f97316" aria-label="Laranja"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #2563eb;" data-color="#2563eb" aria-label="Azul"></button>
               <button type="button" class="color-swatch" style="--swatch-color: #facc15;" data-color="#facc15" aria-label="Amarelo"></button>
               <button type="button" class="color-swatch" style="--swatch-color: #84cc16;" data-color="#84cc16" aria-label="Verde"></button>
-              <button type="button" class="color-swatch" style="--swatch-color: #06b6d4;" data-color="#06b6d4" aria-label="Ciano"></button>
-              <button type="button" class="color-swatch" style="--swatch-color: #7c3aed;" data-color="#7c3aed" aria-label="Roxo"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #f97316;" data-color="#f97316" aria-label="Laranja"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #7c3aed;" data-color="#7c3aed" aria-label="Roxo Violeta"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #ec4899;" data-color="#ec4899" aria-label="Rosa"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #92400e;" data-color="#92400e" aria-label="Marrom"></button>
             </div>
           </div>
         </div>
 
         <div class="toolbar-group size-group">
           <span class="toolbar-title" data-i18n="size">Tamanho</span>
-          <label class="range-field" for="brushSizeInput">
-            <input id="brushSizeInput" type="range" min="2" max="32" value="5">
-            <strong id="brushSizeDisplay">5px</strong>
-          </label>
+          <div class="brush-size-options" aria-label="Tamanhos do pincel" data-i18n-aria-label="brushSizes">
+            <button type="button" class="size-option" data-size="4" aria-label="4px"><span style="--dot-size: 4px;"></span></button>
+            <button type="button" class="size-option is-active" data-size="8" aria-label="8px"><span style="--dot-size: 8px;"></span></button>
+            <button type="button" class="size-option" data-size="16" aria-label="16px"><span style="--dot-size: 16px;"></span></button>
+            <button type="button" class="size-option" data-size="28" aria-label="28px"><span style="--dot-size: 28px;"></span></button>
+          </div>
         </div>
 
         <div class="toolbar-group opacity-group">
           <span class="toolbar-title" data-i18n="transparency">Transpar&ecirc;ncia</span>
-          <label class="range-field" for="brushOpacityInput">
-            <input id="brushOpacityInput" type="range" min="10" max="100" value="100">
-            <strong id="brushOpacityDisplay">100%</strong>
-          </label>
+          <div class="opacity-options" aria-label="Opacidade do pincel" data-i18n-aria-label="brushOpacity">
+            <button type="button" class="opacity-option" data-opacity="25">25%</button>
+            <button type="button" class="opacity-option" data-opacity="50">50%</button>
+            <button type="button" class="opacity-option" data-opacity="75">75%</button>
+            <button type="button" class="opacity-option is-active" data-opacity="100">100%</button>
+          </div>
         </div>
 
         <div class="toolbar-group actions-group">
@@ -154,10 +161,6 @@
             <button id="redoButton" type="button" class="tool-button" disabled>
               <span class="tool-icon" aria-hidden="true">&#8631;</span>
               <span data-i18n="redo">Refazer</span>
-            </button>
-            <button id="clearButton" type="button" class="tool-button">
-              <span class="tool-icon" aria-hidden="true">&#128465;</span>
-              <span data-i18n="clear">Limpar</span>
             </button>
           </div>
         </div>
@@ -192,9 +195,8 @@
 
         <div class="canvas-stage">
           <canvas id="drawingCanvas" width="800" height="500" aria-label="Canvas de desenho" data-i18n-aria-label="canvasLabel"></canvas>
+          <div id="eraserCursor" class="eraser-cursor" aria-hidden="true"></div>
         </div>
-
-        <aside class="drawing-side-panel" aria-hidden="true"></aside>
       </div>
 
       <div class="actions">
