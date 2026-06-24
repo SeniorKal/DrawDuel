@@ -273,6 +273,7 @@ function getFallbackJudgement(room, errorMessage) {
   const winner = winnerIndex === 0 ? 'player1' : 'player2';
   const winnerName = room.players[winnerIndex].nickname;
   const reason = 'A avalia\u00e7\u00e3o do Gemini falhou, ent\u00e3o um vencedor aleat\u00f3rio foi escolhido.';
+  const reasonEn = 'Gemini judging failed, so a random winner was selected.';
 
   console.error(`Gemini judge failed. Using fallback judgement: ${errorMessage}`);
 
@@ -282,6 +283,8 @@ function getFallbackJudgement(room, errorMessage) {
     player1Score: winner === 'player1' ? 7 : 6,
     player2Score: winner === 'player2' ? 7 : 6,
     reason,
+    reasonPt: reason,
+    reasonEn,
   };
 }
 
@@ -333,6 +336,8 @@ async function finishDuel(roomCode) {
     player1Score: judgement.player1Score,
     player2Score: judgement.player2Score,
     reason: judgement.reason,
+    reasonPt: judgement.reasonPt || judgement.reason,
+    reasonEn: judgement.reasonEn || judgement.reason,
   });
 
   console.log(`duelo finalizado: ${roomCode}`);

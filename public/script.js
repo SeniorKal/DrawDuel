@@ -256,6 +256,10 @@ let isSoloMode = false;
 let currentLanguage = 'pt-BR';
 let lastWinnerNickname = '';
 let latestRoomPlayers = [];
+let latestJudgeReasons = {
+  reasonPt: '',
+  reasonEn: '',
+};
 
 function handleSoloMode() {
   const nickname = getNickname();
@@ -451,6 +455,7 @@ function showResult(payload) {
     ? t('soloFinished')
     : t('fakeWinner').replace('{name}', payload.winnerNickname);
   judgeReason.textContent = '';
+  latestJudgeReasons = { reasonPt: '', reasonEn: '' };
   player1ScoreLabel.textContent = currentPlayer;
   player2ScoreLabel.textContent = '-';
   player1ScoreDisplay.textContent = '-';
@@ -483,7 +488,11 @@ function showDuelResult(payload) {
   resultRoom.textContent = payload.roomCode;
   resultTheme.textContent = translateTheme(payload.theme);
   winnerMessage.textContent = t('winner').replace('{name}', payload.winnerName);
-  judgeReason.textContent = payload.reason;
+  latestJudgeReasons = {
+    reasonPt: payload.reasonPt || payload.reason || '',
+    reasonEn: payload.reasonEn || payload.reason || '',
+  };
+  judgeReason.textContent = getLocalizedJudgeReason();
   player1ScoreLabel.textContent = payload.player1Nickname;
   player2ScoreLabel.textContent = payload.player2Nickname;
   player1ScoreDisplay.textContent = `${payload.player1Score}/10`;
@@ -585,6 +594,7 @@ function resetGame() {
   resultBackToMenuButton.textContent = t('backToMenu');
   winnerMessage.textContent = t('fakeWinnerEmpty');
   judgeReason.textContent = '';
+  latestJudgeReasons = { reasonPt: '', reasonEn: '' };
   player1ScoreLabel.textContent = 'Player 1';
   player2ScoreLabel.textContent = 'Player 2';
   player1ScoreDisplay.textContent = '-';
@@ -745,6 +755,10 @@ function applyLanguage() {
     resultBackToMenuButton.textContent = t('backToRoom');
   }
 
+  if (!resultScreen.hidden && (latestJudgeReasons.reasonPt || latestJudgeReasons.reasonEn)) {
+    judgeReason.textContent = getLocalizedJudgeReason();
+  }
+
   if (!waitingScreen.hidden && latestRoomPlayers.length > 0) {
     renderWaitingRoom(latestRoomPlayers);
   }
@@ -765,6 +779,14 @@ function translateTheme(theme) {
   }
 
   return themeTranslation[currentLanguage];
+}
+
+function getLocalizedJudgeReason() {
+  if (currentLanguage === 'en') {
+    return latestJudgeReasons.reasonEn || latestJudgeReasons.reasonPt;
+  }
+
+  return latestJudgeReasons.reasonPt || latestJudgeReasons.reasonEn;
 }
 
 function applyCurrentTool() {

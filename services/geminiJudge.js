@@ -51,12 +51,16 @@ function normalizeScore(score) {
 
 function normalizeJudgement(result) {
   const winner = result.winner === 'player2' ? 'player2' : 'player1';
+  const reasonPt = String(result.reasonPt || result.reason || '').slice(0, 300);
+  const reasonEn = String(result.reasonEn || result.reason || '').slice(0, 300);
 
   return {
     winner,
     player1Score: normalizeScore(result.player1Score),
     player2Score: normalizeScore(result.player2Score),
-    reason: String(result.reason || '').slice(0, 300),
+    reason: reasonPt,
+    reasonPt,
+    reasonEn,
   };
 }
 
@@ -103,7 +107,7 @@ Crit\u00e9rios:
 - Qualidade geral do desenho
 
 Escolha apenas um vencedor.
-Na explica\u00e7\u00e3o, use os nomes reais "${player1Name}" e "${player2Name}". N\u00e3o escreva "jogador 1" ou "jogador 2" na explica\u00e7\u00e3o.
+Nas explica\u00e7\u00f5es, use os nomes reais "${player1Name}" e "${player2Name}". N\u00e3o escreva "jogador 1", "jogador 2", "player 1" ou "player 2" nas explica\u00e7\u00f5es.
 
 Responda SOMENTE em JSON:
 
@@ -111,7 +115,9 @@ Responda SOMENTE em JSON:
   "winner": "player1" ou "player2",
   "player1Score": n\u00famero de 0 a 10,
   "player2Score": n\u00famero de 0 a 10,
-  "reason": "explica\u00e7\u00e3o curta em portugu\u00eas"
+  "reason": "explica\u00e7\u00e3o curta em portugu\u00eas",
+  "reasonPt": "explica\u00e7\u00e3o curta em portugu\u00eas",
+  "reasonEn": "short explanation in English"
 }
 `;
 
