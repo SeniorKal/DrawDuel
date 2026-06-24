@@ -447,6 +447,28 @@ input:focus {
   outline: 3px solid rgba(37, 99, 235, 0.18);
 }
 
+.category-label {
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-transform: uppercase;
+}
+
+.category-select {
+  width: 100%;
+  border: 1px solid rgba(139, 92, 246, 0.76);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: var(--text);
+  background: rgba(8, 13, 36, 0.82);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.category-select:focus {
+  border-color: var(--primary);
+  outline: 3px solid rgba(37, 99, 235, 0.18);
+}
+
 .form-message {
   min-height: 20px;
   margin: 0;
@@ -851,6 +873,18 @@ button:disabled {
   margin: 16px 0 0;
   color: var(--muted);
   font-weight: 700;
+}
+
+.waiting-category-control {
+  display: grid;
+  gap: 8px;
+  width: min(420px, 100%);
+  margin: 18px auto 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-align: left;
+  text-transform: uppercase;
 }
 
 .waiting-players {

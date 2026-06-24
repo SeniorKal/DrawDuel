@@ -64,6 +64,18 @@ function normalizeJudgement(result) {
   };
 }
 
+function normalizeSoloJudgement(result) {
+  const reasonPt = String(result.reasonPt || result.reason || '').slice(0, 300);
+  const reasonEn = String(result.reasonEn || result.reason || '').slice(0, 300);
+
+  return {
+    score: normalizeScore(result.score),
+    reason: reasonPt,
+    reasonPt,
+    reasonEn,
+  };
+}
+
 async function judgeDrawings({
   theme,
   player1Name,
@@ -134,6 +146,68 @@ Responda SOMENTE em JSON:
   return normalizeJudgement(parsedResult);
 }
 
+async function judgeSoloDrawing({
+  theme,
+  playerName,
+  playerImage,
+}) {
+  const genAI = createGeminiClient();
+
+  if (!genAI) {
+    throw new Error('GEMINI_API_KEY is not configured.');
+  }
+
+  const model = genAI.getGenerativeModel({
+    model: GEMINI_MODEL,
+    generationConfig: {
+      responseMimeType: 'application/json',
+      temperature: 0.2,
+    },
+  });
+
+  const playerImagePart = dataUrlToGeminiPart(playerImage);
+
+  const prompt = `
+Voc\u00ea \u00e9 o jurado oficial do modo solo do jogo Draw Duel.
+
+Tema da rodada:
+${theme}
+
+Jogador: ${playerName}
+
+Analise o desenho enviado.
+
+Crit\u00e9rios:
+- Representa\u00e7\u00e3o correta do tema
+- Clareza visual
+- Criatividade
+- Qualidade geral do desenho
+
+D\u00ea uma nota de 0 a 10 e explique brevemente o que achou do desenho.
+Use o nome real "${playerName}" se mencionar o jogador.
+
+Responda SOMENTE em JSON:
+
+{
+  "score": n\u00famero de 0 a 10,
+  "reason": "explica\u00e7\u00e3o curta em portugu\u00eas",
+  "reasonPt": "explica\u00e7\u00e3o curta em portugu\u00eas",
+  "reasonEn": "short explanation in English"
+}
+`;
+
+  const response = await model.generateContent([
+    prompt,
+    playerImagePart,
+  ]);
+
+  const responseText = response.response.text();
+  const parsedResult = JSON.parse(extractJson(responseText));
+
+  return normalizeSoloJudgement(parsedResult);
+}
+
 module.exports = {
   judgeDrawings,
+  judgeSoloDrawing,
 };

@@ -6,15 +6,149 @@ const ERASER_COLOR = '#ffffff';
 const MAX_HISTORY_STEPS = 20;
 const BUCKET_FILL_TOLERANCE = 88;
 const BUCKET_EDGE_TOLERANCE = 126;
-const THEMES = [
-  'cat',
-  'dog',
-  'dragon',
-  'robot',
-  'astronaut',
-  'dinosaur',
-  'castle',
-];
+const DEFAULT_CATEGORY_KEY = 'animals';
+const THEME_CATEGORIES = {
+  animals: {
+    label: { 'pt-BR': 'Animais', en: 'Animals' },
+    themes: [
+      ['dog', 'Cachorro', 'Dog'],
+      ['cat', 'Gato', 'Cat'],
+      ['lion', 'Le\u00e3o', 'Lion'],
+      ['tiger', 'Tigre', 'Tiger'],
+      ['elephant', 'Elefante', 'Elephant'],
+      ['giraffe', 'Girafa', 'Giraffe'],
+      ['zebra', 'Zebra', 'Zebra'],
+      ['monkey', 'Macaco', 'Monkey'],
+      ['penguin', 'Pinguim', 'Penguin'],
+      ['owl', 'Coruja', 'Owl'],
+      ['eagle', '\u00c1guia', 'Eagle'],
+      ['shark', 'Tubar\u00e3o', 'Shark'],
+      ['dolphin', 'Golfinho', 'Dolphin'],
+      ['octopus', 'Polvo', 'Octopus'],
+      ['crab', 'Caranguejo', 'Crab'],
+      ['turtle', 'Tartaruga', 'Turtle'],
+      ['snake', 'Cobra', 'Snake'],
+      ['chameleon', 'Camale\u00e3o', 'Chameleon'],
+      ['rabbit', 'Coelho', 'Rabbit'],
+      ['hamster', 'Hamster', 'Hamster'],
+      ['horse', 'Cavalo', 'Horse'],
+      ['cow', 'Vaca', 'Cow'],
+      ['pig', 'Porco', 'Pig'],
+      ['wolf', 'Lobo', 'Wolf'],
+      ['fox', 'Raposa', 'Fox'],
+      ['panda', 'Panda', 'Panda'],
+      ['kangaroo', 'Canguru', 'Kangaroo'],
+      ['rhino', 'Rinoceronte', 'Rhinoceros'],
+      ['hippo', 'Hipop\u00f3tamo', 'Hippopotamus'],
+      ['sloth', 'Pregui\u00e7a', 'Sloth'],
+    ],
+  },
+  fantasy: {
+    label: { 'pt-BR': 'Fantasia', en: 'Fantasy' },
+    themes: [
+      ['dragon', 'Drag\u00e3o', 'Dragon'],
+      ['fairy', 'Fada', 'Fairy'],
+      ['unicorn', 'Unic\u00f3rnio', 'Unicorn'],
+      ['wizard', 'Mago', 'Wizard'],
+      ['witch', 'Bruxa', 'Witch'],
+      ['knight', 'Cavaleiro', 'Knight'],
+      ['elf', 'Elfo', 'Elf'],
+      ['dwarf', 'An\u00e3o', 'Dwarf'],
+      ['orc', 'Orc', 'Orc'],
+      ['goblin', 'Goblin', 'Goblin'],
+      ['griffin', 'Grifo', 'Griffin'],
+      ['phoenix', 'F\u00eanix', 'Phoenix'],
+      ['mermaid', 'Sereia', 'Mermaid'],
+      ['centaur', 'Centauro', 'Centaur'],
+      ['giant', 'Gigante', 'Giant'],
+      ['castle', 'Castelo', 'Castle'],
+      ['magic-sword', 'Espada m\u00e1gica', 'Magic sword'],
+      ['potion', 'Po\u00e7\u00e3o', 'Potion'],
+      ['magic-crystal', 'Cristal m\u00e1gico', 'Magic crystal'],
+      ['enchanted-book', 'Livro encantado', 'Enchanted book'],
+      ['portal', 'Portal', 'Portal'],
+      ['throne', 'Trono', 'Throne'],
+      ['crown', 'Coroa', 'Crown'],
+      ['treasure', 'Tesouro', 'Treasure'],
+      ['spell', 'Feiti\u00e7o', 'Spell'],
+      ['golem', 'Golem', 'Golem'],
+      ['hydra', 'Hidra', 'Hydra'],
+      ['ghost', 'Fantasma', 'Ghost'],
+      ['necromancer', 'Necromante', 'Necromancer'],
+      ['king', 'Rei', 'King'],
+    ],
+  },
+  technology: {
+    label: { 'pt-BR': 'Tecnologia', en: 'Technology' },
+    themes: [
+      ['computer', 'Computador', 'Computer'],
+      ['laptop', 'Notebook', 'Laptop'],
+      ['phone', 'Celular', 'Phone'],
+      ['tablet', 'Tablet', 'Tablet'],
+      ['robot', 'Rob\u00f4', 'Robot'],
+      ['drone', 'Drone', 'Drone'],
+      ['satellite', 'Sat\u00e9lite', 'Satellite'],
+      ['rocket', 'Foguete', 'Rocket'],
+      ['spaceship', 'Nave espacial', 'Spaceship'],
+      ['game-controller', 'Controle de videogame', 'Game controller'],
+      ['keyboard', 'Teclado', 'Keyboard'],
+      ['mouse', 'Mouse', 'Mouse'],
+      ['monitor', 'Monitor', 'Monitor'],
+      ['headphones', 'Fone de ouvido', 'Headphones'],
+      ['smartwatch', 'Smartwatch', 'Smartwatch'],
+      ['printer', 'Impressora', 'Printer'],
+      ['flash-drive', 'Pendrive', 'Flash drive'],
+      ['server', 'Servidor', 'Server'],
+      ['ai', 'Intelig\u00eancia Artificial', 'Artificial Intelligence'],
+      ['chip', 'Chip', 'Chip'],
+      ['usb-cable', 'Cabo USB', 'USB cable'],
+      ['graphics-card', 'Placa de v\u00eddeo', 'Graphics card'],
+      ['vr-glasses', '\u00d3culos VR', 'VR headset'],
+      ['microphone', 'Microfone', 'Microphone'],
+      ['camera', 'C\u00e2mera', 'Camera'],
+      ['wifi', 'Wi-Fi', 'Wi-Fi'],
+      ['data-center', 'Data Center', 'Data center'],
+      ['android', 'Android', 'Android'],
+      ['hologram', 'Holograma', 'Hologram'],
+      ['exoskeleton', 'Exoesqueleto', 'Exoskeleton'],
+    ],
+  },
+  chaotic: {
+    label: { 'pt-BR': 'Ca\u00f3tico', en: 'Chaotic' },
+    themes: [
+      ['capybara-tank', 'Capivara pilotando um tanque', 'Capybara driving a tank'],
+      ['cat-selling-course', 'Gato vendendo curso', 'Cat selling an online course'],
+      ['dog-office-job', 'Cachorro trabalhando CLT', 'Dog working a corporate job'],
+      ['frog-taxes', 'Sapo pagando imposto', 'Frog paying taxes'],
+      ['shark-gym', 'Tubar\u00e3o na academia', 'Shark at the gym'],
+      ['duck-streaming', 'Pato fazendo live', 'Duck livestreaming'],
+      ['chicken-soccer', 'Galinha jogando futebol', 'Chicken playing soccer'],
+      ['alligator-skate', 'Jacar\u00e9 andando de skate', 'Alligator skateboarding'],
+      ['skeleton-bbq', 'Esqueleto no churrasco', 'Skeleton at a barbecue'],
+      ['banana-suit', 'Banana de terno', 'Banana wearing a suit'],
+      ['potato-president', 'Batata presidente', 'Potato president'],
+      ['detective-pigeon', 'Pombo detetive', 'Detective pigeon'],
+      ['alien-traffic', 'Alien\u00edgena no tr\u00e2nsito', 'Alien in traffic'],
+      ['dinosaur-delivery', 'Dinossauro entregador', 'Delivery dinosaur'],
+      ['horse-programmer', 'Cavalo programador', 'Programmer horse'],
+      ['vampire-sunbathing', 'Vampiro tomando sol', 'Vampire sunbathing'],
+      ['mummy-gym', 'M\u00famia fazendo academia', 'Mummy at the gym'],
+      ['ghost-gaming', 'Fantasma jogando videogame', 'Ghost playing video games'],
+      ['capybara-astronaut', 'Capivara astronauta', 'Capybara astronaut'],
+      ['pirate-cat', 'Gato pirata', 'Pirate cat'],
+      ['samurai-dog', 'Cachorro samurai', 'Samurai dog'],
+      ['business-chicken', 'Frango empres\u00e1rio', 'Business chicken'],
+      ['shark-waiter', 'Tubar\u00e3o gar\u00e7om', 'Shark waiter'],
+      ['mafia-penguin', 'Pinguim mafioso', 'Mafia penguin'],
+      ['octopus-dj', 'Polvo DJ', 'Octopus DJ'],
+      ['crocodile-influencer', 'Crocodilo influencer', 'Crocodile influencer'],
+      ['carrot-thief-rabbit', 'Coelho ladr\u00e3o de cenouras', 'Rabbit stealing carrots'],
+      ['monkey-streamer', 'Macaco streamer', 'Monkey streamer'],
+      ['teacher-owl', 'Coruja professora', 'Teacher owl'],
+      ['trap-singer-wolf', 'Lobo cantor de trap', 'Wolf trap singer'],
+    ],
+  },
+};
 
 const TRANSLATIONS = {
   'pt-BR': {
@@ -26,6 +160,7 @@ const TRANSLATIONS = {
     startScreenLabel: 'Tela inicial',
     menuDescription: 'Escolha como quer jogar e mostre seu desenho antes do tempo acabar.',
     nicknamePlaceholder: 'Ex: PixelMaster',
+    category: 'Categoria de tema',
     gameModesLabel: 'Modos de jogo',
     soloMode: 'Jogo Solo',
     soloModeDescription: 'Treine contra o tempo',
@@ -69,6 +204,8 @@ const TRANSLATIONS = {
     result: 'Resultado',
     aiNotImplemented: 'IA ainda n\u00e3o implementada',
     aiJudgeResult: 'Resultado da IA',
+    aiJudging: 'IA analisando seu desenho...',
+    aiScore: 'Nota da IA',
     room: 'Sala',
     yourDrawing: 'Seu desenho',
     opponentDrawing: 'Desenho do advers\u00e1rio',
@@ -79,6 +216,7 @@ const TRANSLATIONS = {
     joinNicknameRequired: 'Digite um nickname para entrar na sala.',
     roomCodeRequired: 'Digite o c\u00f3digo da sala.',
     privateRoomHint: 'Crie uma sala ou entre com um c\u00f3digo.',
+    categoryChanged: 'Categoria atualizada. Clique em pronto novamente.',
     soloOpponent: 'Treino solo',
     preparing: 'Prepare-se...',
     timeEndedSending: 'Tempo encerrado! Enviando desenho...',
@@ -115,6 +253,7 @@ const TRANSLATIONS = {
     startScreenLabel: 'Start screen',
     menuDescription: 'Choose how you want to play and draw before time runs out.',
     nicknamePlaceholder: 'Ex: PixelMaster',
+    category: 'Theme category',
     gameModesLabel: 'Game modes',
     soloMode: 'Solo Game',
     soloModeDescription: 'Practice against the clock',
@@ -158,6 +297,8 @@ const TRANSLATIONS = {
     result: 'Result',
     aiNotImplemented: 'AI not implemented yet',
     aiJudgeResult: 'AI result',
+    aiJudging: 'AI is judging your drawing...',
+    aiScore: 'AI score',
     room: 'Room',
     yourDrawing: 'Your drawing',
     opponentDrawing: 'Opponent drawing',
@@ -168,6 +309,7 @@ const TRANSLATIONS = {
     joinNicknameRequired: 'Enter a nickname to join the room.',
     roomCodeRequired: 'Enter the room code.',
     privateRoomHint: 'Create a room or join with a code.',
+    categoryChanged: 'Category updated. Click ready again.',
     soloOpponent: 'Solo practice',
     preparing: 'Get ready...',
     timeEndedSending: 'Time is up! Sending drawing...',
@@ -197,26 +339,6 @@ const TRANSLATIONS = {
   },
 };
 
-const THEME_TRANSLATIONS = {
-  cat: { 'pt-BR': 'Gato', en: 'Cat' },
-  dog: { 'pt-BR': 'Cachorro', en: 'Dog' },
-  dragon: { 'pt-BR': 'Drag\u00e3o', en: 'Dragon' },
-  robot: { 'pt-BR': 'Rob\u00f4', en: 'Robot' },
-  astronaut: { 'pt-BR': 'Astronauta', en: 'Astronaut' },
-  dinosaur: { 'pt-BR': 'Dinossauro', en: 'Dinosaur' },
-  castle: { 'pt-BR': 'Castelo', en: 'Castle' },
-};
-
-const THEME_ALIASES = {
-  Gato: 'cat',
-  Cachorro: 'dog',
-  'Drag\u00e3o': 'dragon',
-  'Rob\u00f4': 'robot',
-  Astronauta: 'astronaut',
-  Dinossauro: 'dinosaur',
-  Castelo: 'castle',
-};
-
 const socket = window.io ? window.io({ autoConnect: false }) : null;
 
 const settingsButton = document.getElementById('settingsButton');
@@ -229,6 +351,8 @@ const gameScreen = document.getElementById('gameScreen');
 const resultScreen = document.getElementById('resultScreen');
 const nicknameInput = document.getElementById('nicknameInput');
 const roomCodeInput = document.getElementById('roomCodeInput');
+const categorySelect = document.getElementById('categorySelect');
+const waitingCategorySelect = document.getElementById('waitingCategorySelect');
 const soloModeButton = document.getElementById('soloModeButton');
 const friendsModeButton = document.getElementById('friendsModeButton');
 const privateRoomPanel = document.getElementById('privateRoomPanel');
@@ -260,6 +384,10 @@ const colorSwatches = Array.from(document.querySelectorAll('.color-swatch'));
 const resetButton = document.getElementById('resetButton');
 const statusMessage = document.getElementById('statusMessage');
 const eraserCursor = document.getElementById('eraserCursor');
+const resultRoomCard = document.getElementById('resultRoomCard');
+const resultThemeCard = document.getElementById('resultThemeCard');
+const player1ScoreCard = document.getElementById('player1ScoreCard');
+const player2ScoreCard = document.getElementById('player2ScoreCard');
 const resultRoom = document.getElementById('resultRoom');
 const resultTheme = document.getElementById('resultTheme');
 const winnerMessage = document.getElementById('winnerMessage');
@@ -276,6 +404,7 @@ const resultBackToMenuButton = document.getElementById('resultBackToMenuButton')
 let currentPlayer = '';
 let currentRoomCode = '';
 let currentTheme = '';
+let currentCategoryKey = DEFAULT_CATEGORY_KEY;
 let currentOpponentNickname = '';
 let isDrawing = false;
 let lastDrawPosition = null;
@@ -327,12 +456,14 @@ function handleSoloMode() {
 
   currentPlayer = nickname;
   isSoloMode = true;
+  currentCategoryKey = getSelectedCategoryKey();
 
   const startsAt = Date.now() + 600;
 
   startGame({
     roomCode: 'SOLO',
-    theme: getRandomTheme(),
+    categoryKey: currentCategoryKey,
+    theme: getRandomTheme(currentCategoryKey),
     opponentNickname: t('soloOpponent'),
     durationSeconds: GAME_DURATION_SECONDS,
     serverNow: Date.now(),
@@ -359,8 +490,9 @@ function handleCreateRoom() {
 
   currentPlayer = nickname;
   isSoloMode = false;
+  currentCategoryKey = getSelectedCategoryKey();
   connectSocket(() => {
-    socket.emit('create-room', { nickname });
+    socket.emit('create-room', { nickname, categoryKey: currentCategoryKey });
   });
 }
 
@@ -399,6 +531,7 @@ function handleReadyClick() {
 function startGame(payload) {
   duelServerOffset = payload.serverNow ? payload.serverNow - Date.now() : 0;
   currentRoomCode = payload.roomCode;
+  currentCategoryKey = payload.categoryKey || currentCategoryKey;
   currentTheme = payload.theme;
   currentOpponentNickname = payload.opponentNickname;
   latestRoomPlayers = [];
@@ -478,18 +611,22 @@ function endGame() {
   submitDrawing();
 }
 
-function submitDrawing() {
+async function submitDrawing() {
   if (isSoloMode) {
+    const ownDrawing = {
+      nickname: currentPlayer,
+      drawingDataUrl: getCanvasImage(),
+    };
+
     showResult({
       roomCode: 'SOLO',
       theme: currentTheme,
       winnerNickname: currentPlayer,
-      ownDrawing: {
-        nickname: currentPlayer,
-        drawingDataUrl: getCanvasImage(),
-      },
+      ownDrawing,
       opponentDrawing: null,
     });
+
+    await judgeSoloDrawing(ownDrawing.drawingDataUrl);
     return;
   }
 
@@ -501,21 +638,62 @@ function submitDrawing() {
   });
 }
 
+async function judgeSoloDrawing(drawingDataUrl) {
+  judgeReason.textContent = t('aiJudging');
+
+  try {
+    const response = await fetch('/api/judge-solo', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        theme: translateTheme(currentTheme),
+        playerName: currentPlayer,
+        drawingDataUrl,
+        language: currentLanguage,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Solo judge request failed.');
+    }
+
+    const judgement = await response.json();
+
+    latestJudgeReasons = {
+      reasonPt: judgement.reasonPt || judgement.reason || '',
+      reasonEn: judgement.reasonEn || judgement.reason || '',
+    };
+    player1ScoreDisplay.textContent = `${judgement.score}/10`;
+    judgeReason.textContent = getLocalizedJudgeReason();
+  } catch (error) {
+    latestJudgeReasons = {
+      reasonPt: 'N\u00e3o foi poss\u00edvel avaliar com IA agora, mas seu desenho foi enviado corretamente.',
+      reasonEn: 'AI judging is unavailable right now, but your drawing was submitted correctly.',
+    };
+    player1ScoreDisplay.textContent = '-';
+    judgeReason.textContent = getLocalizedJudgeReason();
+  }
+}
+
 function showResult(payload) {
   clearInterval(timerId);
   clearTimeout(gameStartTimeoutId);
 
+  resultRoomCard.hidden = true;
+  resultThemeCard.hidden = false;
+  player1ScoreCard.hidden = false;
+  player2ScoreCard.hidden = true;
   resultRoom.textContent = payload.roomCode;
   resultTheme.textContent = translateTheme(payload.theme);
   lastWinnerNickname = payload.winnerNickname || '';
-  winnerMessage.textContent = isSoloMode
-    ? t('soloFinished')
-    : t('fakeWinner').replace('{name}', payload.winnerNickname);
-  judgeReason.textContent = '';
+  winnerMessage.textContent = t('soloFinished');
+  judgeReason.textContent = t('aiJudging');
   latestJudgeReasons = { reasonPt: '', reasonEn: '' };
-  player1ScoreLabel.textContent = currentPlayer;
+  player1ScoreLabel.textContent = t('aiScore');
   player2ScoreLabel.textContent = '-';
-  player1ScoreDisplay.textContent = '-';
+  player1ScoreDisplay.textContent = '...';
   player2ScoreDisplay.textContent = '-';
   ownResultImage.src = payload.ownDrawing.drawingDataUrl;
   opponentResultCard.hidden = !payload.opponentDrawing;
@@ -530,8 +708,8 @@ function showResult(payload) {
   resultScreen.hidden = false;
   setSettingsVisible(false);
   statusMessage.textContent = '';
-  resultBackToMenuButton.textContent = t('backToRoom');
-  resultBackToMenuButton.dataset.resultAction = 'room';
+  resultBackToMenuButton.textContent = t('backToMenu');
+  resultBackToMenuButton.dataset.resultAction = 'menu';
 }
 
 function showDuelResult(payload) {
@@ -543,6 +721,10 @@ function showDuelResult(payload) {
   const opponentDrawing = isPlayer1 ? payload.player2Drawing : payload.player1Drawing;
 
   lastWinnerNickname = payload.winnerName || '';
+  resultRoomCard.hidden = true;
+  resultThemeCard.hidden = false;
+  player1ScoreCard.hidden = false;
+  player2ScoreCard.hidden = false;
   resultRoom.textContent = payload.roomCode;
   resultTheme.textContent = translateTheme(payload.theme);
   winnerMessage.textContent = t('winner').replace('{name}', payload.winnerName);
@@ -631,6 +813,7 @@ function resetGame() {
   currentPlayer = '';
   currentRoomCode = '';
   currentTheme = '';
+  currentCategoryKey = DEFAULT_CATEGORY_KEY;
   currentOpponentNickname = '';
   isDrawing = false;
   lastDrawPosition = null;
@@ -643,6 +826,8 @@ function resetGame() {
 
   nicknameInput.value = '';
   roomCodeInput.value = '';
+  categorySelect.value = currentCategoryKey;
+  waitingCategorySelect.value = currentCategoryKey;
   privateRoomPanel.hidden = true;
   soloModeButton.classList.remove('is-selected');
   friendsModeButton.classList.remove('is-selected');
@@ -656,6 +841,10 @@ function resetGame() {
   themeDisplay.textContent = '-';
   statusMessage.textContent = '';
   startMessage.textContent = '';
+  resultRoomCard.hidden = false;
+  resultThemeCard.hidden = false;
+  player1ScoreCard.hidden = false;
+  player2ScoreCard.hidden = false;
   resultRoom.textContent = '-';
   resultTheme.textContent = '-';
   resultBackToMenuButton.disabled = false;
@@ -844,8 +1033,20 @@ function t(key) {
   return TRANSLATIONS[currentLanguage][key] || TRANSLATIONS['pt-BR'][key] || key;
 }
 
+function populateCategorySelects() {
+  const categoryOptions = Object.entries(THEME_CATEGORIES).map(([categoryKey, category]) => (
+    `<option value="${categoryKey}">${category.label[currentLanguage]}</option>`
+  )).join('');
+
+  categorySelect.innerHTML = categoryOptions;
+  waitingCategorySelect.innerHTML = categoryOptions;
+  categorySelect.value = currentCategoryKey;
+  waitingCategorySelect.value = currentCategoryKey;
+}
+
 function applyLanguage() {
   document.documentElement.lang = currentLanguage;
+  populateCategorySelects();
 
   document.querySelectorAll('[data-i18n]').forEach((element) => {
     element.textContent = t(element.dataset.i18n);
@@ -876,6 +1077,7 @@ function applyLanguage() {
 
   if (isSoloMode && !resultScreen.hidden) {
     winnerMessage.textContent = t('soloFinished');
+    player1ScoreLabel.textContent = t('aiScore');
   } else if (lastWinnerNickname) {
     winnerMessage.textContent = t('winner').replace('{name}', lastWinnerNickname);
   } else if (winnerMessage.textContent) {
@@ -902,14 +1104,42 @@ function setLanguage(language) {
 }
 
 function translateTheme(theme) {
-  const themeKey = THEME_ALIASES[theme] || theme;
-  const themeTranslation = THEME_TRANSLATIONS[themeKey];
+  const themeData = findTheme(theme);
 
-  if (!themeTranslation) {
+  if (!themeData) {
     return theme;
   }
 
-  return themeTranslation[currentLanguage];
+  return themeData[currentLanguage];
+}
+
+function translateCategory(categoryKey) {
+  return THEME_CATEGORIES[categoryKey]?.label[currentLanguage] || categoryKey;
+}
+
+function findTheme(themeKey) {
+  const allThemes = Object.values(THEME_CATEGORIES).flatMap((category) => category.themes);
+  const themeData = allThemes.find(([key, ptLabel]) => key === themeKey || ptLabel === themeKey);
+
+  if (!themeData) {
+    return null;
+  }
+
+  return {
+    key: themeData[0],
+    'pt-BR': themeData[1],
+    en: themeData[2],
+  };
+}
+
+function getSelectedCategoryKey() {
+  return categorySelect.value || DEFAULT_CATEGORY_KEY;
+}
+
+function getRandomTheme(categoryKey = DEFAULT_CATEGORY_KEY) {
+  const themes = THEME_CATEGORIES[categoryKey]?.themes || THEME_CATEGORIES[DEFAULT_CATEGORY_KEY].themes;
+  const themeIndex = Math.floor(Math.random() * themes.length);
+  return themes[themeIndex][0];
 }
 
 function getLocalizedJudgeReason() {
@@ -1184,11 +1414,6 @@ function resetDrawingTools() {
   setToolControlsDisabled(true);
 }
 
-function getRandomTheme() {
-  const themeIndex = Math.floor(Math.random() * THEMES.length);
-  return THEMES[themeIndex];
-}
-
 function toggleSettingsPanel() {
   const isOpen = settingsPanel.hidden;
 
@@ -1207,6 +1432,7 @@ function setSettingsVisible(isVisible) {
 
 function handleRoomState(payload) {
   currentRoomCode = payload.roomCode;
+  currentCategoryKey = payload.categoryKey || DEFAULT_CATEGORY_KEY;
   latestRoomPlayers = payload.players || [];
 
   setSettingsVisible(false);
@@ -1217,6 +1443,7 @@ function handleRoomState(payload) {
   resultBackToMenuButton.disabled = false;
   resultBackToMenuButton.dataset.resultAction = '';
   roomCodeDisplay.textContent = payload.roomCode;
+  waitingCategorySelect.value = currentCategoryKey;
   renderWaitingRoom(latestRoomPlayers);
 }
 
@@ -1265,6 +1492,18 @@ function handleMenuInputChange() {
   showStartMessage('', false);
 }
 
+function handleCategoryChange() {
+  currentCategoryKey = getSelectedCategoryKey();
+}
+
+function handleWaitingCategoryChange() {
+  currentCategoryKey = waitingCategorySelect.value || DEFAULT_CATEGORY_KEY;
+
+  if (socket && socket.connected && currentRoomCode) {
+    socket.emit('update-room-category', { categoryKey: currentCategoryKey });
+  }
+}
+
 function handleKeyboardShortcuts(event) {
   const activeTagName = document.activeElement?.tagName?.toLowerCase();
   const isTyping = activeTagName === 'input' || activeTagName === 'textarea';
@@ -1305,6 +1544,8 @@ roomCodeInput.addEventListener('paste', () => {
     handleMenuInputChange();
   }, 0);
 });
+categorySelect.addEventListener('change', handleCategoryChange);
+waitingCategorySelect.addEventListener('change', handleWaitingCategoryChange);
 settingsButton.addEventListener('click', toggleSettingsPanel);
 ptLanguageButton.addEventListener('click', () => setLanguage('pt-BR'));
 enLanguageButton.addEventListener('click', () => setLanguage('en'));

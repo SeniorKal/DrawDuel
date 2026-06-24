@@ -43,6 +43,9 @@
         </label>
         <input id="nicknameInput" type="text" maxlength="20" autocomplete="off" placeholder="Ex: PixelMaster" data-i18n-placeholder="nicknamePlaceholder">
 
+        <label class="category-label" for="categorySelect" data-i18n="category">Categoria</label>
+        <select id="categorySelect" class="category-select" aria-label="Categoria" data-i18n-aria-label="category"></select>
+
         <div class="mode-options" aria-label="Modos de jogo" data-i18n-aria-label="gameModesLabel">
           <button id="soloModeButton" type="button" class="mode-button" disabled>
             <span class="mode-icon mode-icon-solo" aria-hidden="true">
@@ -84,6 +87,10 @@
       <span class="eyebrow" data-i18n="roomCreated">Sala criada</span>
       <h2 data-i18n="roomCodeTitle">C&oacute;digo da sala</h2>
       <strong id="roomCodeDisplay" class="room-code">------</strong>
+      <label class="waiting-category-control" for="waitingCategorySelect">
+        <span data-i18n="category">Categoria</span>
+        <select id="waitingCategorySelect" class="category-select" aria-label="Categoria" data-i18n-aria-label="category"></select>
+      </label>
       <p id="waitingRoomMessage" data-i18n="waitingPlayer">Aguardando outro jogador...</p>
       <div id="waitingPlayersList" class="waiting-players" aria-label="Jogadores na sala" data-i18n-aria-label="playersInRoomLabel"></div>
       <p id="readyStatusMessage" class="ready-status" role="status" aria-live="polite"></p>
@@ -216,10 +223,10 @@
       </div>
 
       <div class="result-details">
-        <p><span data-i18n="room">Sala</span><strong id="resultRoom">-</strong></p>
-        <p><span data-i18n="theme">Tema</span><strong id="resultTheme">-</strong></p>
-        <p><span id="player1ScoreLabel">Player 1</span><strong id="player1ScoreDisplay">-</strong></p>
-        <p><span id="player2ScoreLabel">Player 2</span><strong id="player2ScoreDisplay">-</strong></p>
+        <p id="resultRoomCard"><span data-i18n="room">Sala</span><strong id="resultRoom">-</strong></p>
+        <p id="resultThemeCard"><span data-i18n="theme">Tema</span><strong id="resultTheme">-</strong></p>
+        <p id="player1ScoreCard"><span id="player1ScoreLabel">Player 1</span><strong id="player1ScoreDisplay">-</strong></p>
+        <p id="player2ScoreCard"><span id="player2ScoreLabel">Player 2</span><strong id="player2ScoreDisplay">-</strong></p>
       </div>
 
       <div class="result-gallery">
