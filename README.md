@@ -1,33 +1,47 @@
 # Draw Duel
 
-Draw Duel is a real-time drawing duel web app built with HTML, CSS, JavaScript, Node.js, Express, Socket.IO, and Google Gemini.
+Draw Duel is a browser drawing game built with HTML, CSS, JavaScript, Node.js, Express, Socket.IO, and Google Gemini.
 
-Players can practice alone or create private rooms to play with a friend. In multiplayer mode, both players join the same room, mark themselves as ready, receive the same drawing theme, and start a synchronized 60-second duel. At the end of the timer, both drawings are submitted and Gemini judges which drawing represents the theme better.
+Players can draw alone in Solo Mode or create a private room to duel with a friend. Each match has a 60-second timer, a random theme from the selected category, drawing tools, and an AI result screen.
+
+## Release
+
+Current release: **1.0.0**
+
+This is the first public release of Draw Duel.
 
 ## Play Online
 
-You can play Draw Duel here:
+Play here:
 
 https://drawduel.onrender.com/
 
 ## Features
 
-- Solo drawing mode
-- Private multiplayer rooms with 6-character room codes
-- Waiting room with ready checks before the duel starts
-- Real-time room flow with Socket.IO
-- Synchronized 60-second duel timer
-- Random drawing themes
-- Canvas drawing with mouse, touch, or stylus
-- Brush color selector
-- Brush size control
-- Eraser tool
+- Solo Mode
+- Private multiplayer rooms with room codes
+- Waiting room with ready checks
+- Theme category selection
+- Random theme inside the selected category
+- Portuguese Brazil and English language support
+- Synchronized 60-second multiplayer timer
+- Drawing canvas with mouse, touch, or stylus
+- Brush, eraser, and bucket tools
+- Preset colors
+- Preset brush sizes
+- Preset transparency levels
+- Undo and redo actions
 - Clear drawing button
-- Result screen showing both drawings
 - AI judging with Google Gemini
-- Fallback random winner if Gemini fails
-- Language selector with Portuguese Brazil and English
-- Dark blue and purple game-style interface
+- Solo AI score from 0 to 10
+- Multiplayer AI winner, scores, and feedback
+
+## Theme Categories
+
+- Animals
+- Fantasy
+- Technology
+- Chaotic
 
 ## Tech Stack
 
@@ -43,18 +57,17 @@ https://drawduel.onrender.com/
 
 ```text
 DrawDuel/
-├── public/
-│   ├── images/
-│   │   └── logo_draw.png
-│   ├── index.html
-│   ├── style.css
-│   └── script.js
-├── services/
-│   └── geminiJudge.js
-├── server.js
-├── package.json
-├── package-lock.json
-└── README.md
+|-- public/
+|   |-- images/
+|   |-- index.html
+|   |-- style.css
+|   `-- script.js
+|-- services/
+|   `-- geminiJudge.js
+|-- server.js
+|-- package.json
+|-- package-lock.json
+`-- README.md
 ```
 
 ## Environment Variables
@@ -71,39 +84,35 @@ Optional:
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-On Render, set these values in the service Environment Variables panel instead of committing `.env`.
+On Render, add these values in the service environment variables panel. Do not commit your `.env` file.
 
-## Getting Started
+## Run Locally
 
-### 1. Install dependencies
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-### 2. Start the server
+Start the server:
 
 ```bash
 npm start
 ```
 
-You can also use:
+Or:
 
 ```bash
 npm run dev
 ```
 
-### 3. Open the app locally
-
-Go to:
+Open:
 
 ```text
 http://localhost:3000
 ```
 
 ## Health Check
-
-The backend exposes a simple health check route:
 
 ```http
 GET /api/health
@@ -120,36 +129,42 @@ Response:
 
 ## Multiplayer Flow
 
-1. Player enters a nickname.
-2. Player creates a private room.
-3. The server generates a random 6-character room code.
-4. Another player enters the same code to join.
-5. Both players enter a waiting room.
-6. Both players must click Ready.
-7. The server starts the duel when both players are ready.
-8. Both players receive the same theme and a synchronized timer.
-9. When time runs out, each canvas is converted with `canvas.toDataURL()`.
-10. Drawings are sent to the server.
-11. The server sends both drawings and the theme to Gemini.
-12. Gemini returns the winner, scores, and a short reason.
-13. Both players receive the final result.
+1. Enter a nickname.
+2. Choose a theme category.
+3. Create a private room or join with a room code.
+4. Wait until both players are in the room.
+5. Both players click Ready.
+6. The server picks a random theme from the selected category.
+7. Both players draw for 60 seconds.
+8. Drawings are submitted to the server.
+9. Gemini judges the drawings.
+10. Both players see the final result.
+
+## Solo Flow
+
+1. Enter a nickname.
+2. Choose a theme category.
+3. Start Solo Mode.
+4. Draw for 60 seconds.
+5. Gemini gives a score from 0 to 10 and short feedback.
 
 ## Current Limitations
 
-- No database persistence
+- No database
 - No user accounts
-- Rooms and drawings are stored temporarily in memory
-- If Gemini fails, the server uses a random fallback winner
+- Rooms are stored in memory
+- Drawings are not saved permanently
+- If Gemini fails, the app uses fallback results
 
-## Future Improvements
+## Future Ideas
 
-- Persistent match history
+- Match history
 - Player profiles
-- Spectator mode
 - Better reconnect handling
-- More drawing tools
-- More game modes and theme categories
+- More game modes
+- More theme categories
+- Spectator mode
 
 ## License
 
-This project is currently intended for study and portfolio purposes.
+This project is for study, portfolio, and learning purposes.
