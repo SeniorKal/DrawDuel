@@ -92,48 +92,113 @@
     </section>
 
     <section id="gameScreen" class="card game-card" aria-label="Tela de jogo" data-i18n-aria-label="gameScreenLabel" hidden>
-      <div class="game-topbar">
-        <div>
-          <span class="label" data-i18n="player">Jogador</span>
-          <strong id="playerDisplay">-</strong>
-        </div>
-
-        <div>
-          <span class="label" data-i18n="opponent">Advers&aacute;rio</span>
-          <strong id="opponentDisplay">-</strong>
-        </div>
-
-        <div>
-          <span class="label" data-i18n="theme">Tema</span>
-          <strong id="themeDisplay">-</strong>
-        </div>
-
-        <div>
-          <span class="label" data-i18n="time">Tempo</span>
-          <strong id="timerDisplay">60s</strong>
-        </div>
-      </div>
-
       <div class="drawing-toolbar" aria-label="Ferramentas de desenho" data-i18n-aria-label="drawingToolsLabel">
-        <label class="tool-field" for="brushColorInput">
-          <span data-i18n="color">Cor</span>
-          <input id="brushColorInput" type="color" value="#111827">
-        </label>
+        <div class="toolbar-group tools-group">
+          <span class="toolbar-title" data-i18n="tools">Ferramentas</span>
+          <div class="tool-button-list">
+            <button id="brushButton" type="button" class="tool-button is-active">
+              <span class="tool-icon" aria-hidden="true">&#9998;</span>
+              <span data-i18n="brush">Pincel</span>
+            </button>
+            <button id="eraserButton" type="button" class="tool-button">
+              <span class="tool-icon" aria-hidden="true">&#8999;</span>
+              <span data-i18n="eraser">Borracha</span>
+            </button>
+            <button id="bucketButton" type="button" class="tool-button">
+              <span class="tool-icon" aria-hidden="true">&#11044;</span>
+              <span data-i18n="bucket">Balde</span>
+            </button>
+          </div>
+        </div>
 
-        <label class="tool-field brush-size-field" for="brushSizeInput">
-          <span data-i18n="thickness">Espessura</span>
-          <input id="brushSizeInput" type="range" min="2" max="30" value="5">
-          <strong id="brushSizeDisplay">5px</strong>
-        </label>
+        <div class="toolbar-group color-group">
+          <span class="toolbar-title" data-i18n="color">Cor</span>
+          <div class="color-tools">
+            <input id="brushColorInput" type="color" value="#111827" aria-label="Cor personalizada" data-i18n-aria-label="customColor">
+            <div class="color-palette" aria-label="Cores predefinidas" data-i18n-aria-label="presetColors">
+              <button type="button" class="color-swatch is-active" style="--swatch-color: #111827;" data-color="#111827" aria-label="Preto"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #ffffff;" data-color="#ffffff" aria-label="Branco"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #ef4444;" data-color="#ef4444" aria-label="Vermelho"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #f97316;" data-color="#f97316" aria-label="Laranja"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #facc15;" data-color="#facc15" aria-label="Amarelo"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #84cc16;" data-color="#84cc16" aria-label="Verde"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #06b6d4;" data-color="#06b6d4" aria-label="Ciano"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #7c3aed;" data-color="#7c3aed" aria-label="Roxo"></button>
+            </div>
+          </div>
+        </div>
 
-        <button id="brushButton" type="button" class="tool-button is-active" data-i18n="brush">Pincel</button>
-        <button id="eraserButton" type="button" class="tool-button" data-i18n="eraser">Borracha</button>
+        <div class="toolbar-group size-group">
+          <span class="toolbar-title" data-i18n="size">Tamanho</span>
+          <label class="range-field" for="brushSizeInput">
+            <input id="brushSizeInput" type="range" min="2" max="32" value="5">
+            <strong id="brushSizeDisplay">5px</strong>
+          </label>
+        </div>
+
+        <div class="toolbar-group opacity-group">
+          <span class="toolbar-title" data-i18n="transparency">Transpar&ecirc;ncia</span>
+          <label class="range-field" for="brushOpacityInput">
+            <input id="brushOpacityInput" type="range" min="10" max="100" value="100">
+            <strong id="brushOpacityDisplay">100%</strong>
+          </label>
+        </div>
+
+        <div class="toolbar-group actions-group">
+          <span class="toolbar-title" data-i18n="actions">A&ccedil;&otilde;es</span>
+          <div class="tool-button-list compact-actions">
+            <button id="undoButton" type="button" class="tool-button" disabled>
+              <span class="tool-icon" aria-hidden="true">&#8630;</span>
+              <span data-i18n="undo">Desfazer</span>
+            </button>
+            <button id="redoButton" type="button" class="tool-button" disabled>
+              <span class="tool-icon" aria-hidden="true">&#8631;</span>
+              <span data-i18n="redo">Refazer</span>
+            </button>
+            <button id="clearButton" type="button" class="tool-button">
+              <span class="tool-icon" aria-hidden="true">&#128465;</span>
+              <span data-i18n="clear">Limpar</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <canvas id="drawingCanvas" width="800" height="500" aria-label="Canvas de desenho" data-i18n-aria-label="canvasLabel"></canvas>
+      <div class="drawing-layout">
+        <aside class="game-info-panel">
+          <div class="info-block timer-block">
+            <span class="info-icon" aria-hidden="true">&#9719;</span>
+            <span class="label" data-i18n="remainingTime">Tempo restante</span>
+            <strong id="timerDisplay">60s</strong>
+          </div>
+
+          <div class="info-block">
+            <span class="info-icon star-icon" aria-hidden="true">&#9734;</span>
+            <span class="label" data-i18n="theme">Tema</span>
+            <strong id="themeDisplay">-</strong>
+          </div>
+
+          <div class="info-block">
+            <span class="info-icon player-icon" aria-hidden="true">&#9679;</span>
+            <span class="label" data-i18n="player">Jogador</span>
+            <strong id="playerDisplay">-</strong>
+          </div>
+
+          <div class="info-block">
+            <span class="info-icon opponent-icon" aria-hidden="true">&#9679;</span>
+            <span class="label" data-i18n="opponent">Advers&aacute;rio</span>
+            <strong id="opponentDisplay">-</strong>
+          </div>
+        </aside>
+
+        <div class="canvas-stage">
+          <canvas id="drawingCanvas" width="800" height="500" aria-label="Canvas de desenho" data-i18n-aria-label="canvasLabel"></canvas>
+        </div>
+
+        <aside class="drawing-side-panel" aria-hidden="true"></aside>
+      </div>
 
       <div class="actions">
-        <button id="clearButton" type="button" class="secondary-button" data-i18n="clearDrawing">Limpar Desenho</button>
+        <button id="bottomClearButton" type="button" class="secondary-button" data-i18n="clearDrawing">Limpar Desenho</button>
         <button id="resetButton" type="button" data-i18n="leaveDuel">Sair do Duelo</button>
       </div>
 

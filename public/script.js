@@ -1,7 +1,9 @@
 const GAME_DURATION_SECONDS = 60;
 const DEFAULT_BRUSH_COLOR = '#111827';
 const DEFAULT_BRUSH_SIZE = 5;
+const DEFAULT_BRUSH_OPACITY = 1;
 const ERASER_COLOR = '#ffffff';
+const MAX_HISTORY_STEPS = 20;
 const THEMES = [
   'cat',
   'dog',
@@ -41,10 +43,21 @@ const TRANSLATIONS = {
     theme: 'Tema',
     time: 'Tempo',
     drawingToolsLabel: 'Ferramentas de desenho',
+    tools: 'Ferramentas',
     color: 'Cor',
+    customColor: 'Cor personalizada',
+    presetColors: 'Cores predefinidas',
     thickness: 'Espessura',
+    size: 'Tamanho',
+    transparency: 'Transpar\u00eancia',
+    actions: 'A\u00e7\u00f5es',
     brush: 'Pincel',
     eraser: 'Borracha',
+    bucket: 'Balde',
+    undo: 'Desfazer',
+    redo: 'Refazer',
+    clear: 'Limpar',
+    remainingTime: 'Tempo restante',
     canvasLabel: 'Canvas de desenho',
     clearDrawing: 'Limpar Desenho',
     leaveDuel: 'Sair do Duelo',
@@ -117,10 +130,21 @@ const TRANSLATIONS = {
     theme: 'Theme',
     time: 'Time',
     drawingToolsLabel: 'Drawing tools',
+    tools: 'Tools',
     color: 'Color',
+    customColor: 'Custom color',
+    presetColors: 'Preset colors',
     thickness: 'Thickness',
+    size: 'Size',
+    transparency: 'Transparency',
+    actions: 'Actions',
     brush: 'Brush',
     eraser: 'Eraser',
+    bucket: 'Bucket',
+    undo: 'Undo',
+    redo: 'Redo',
+    clear: 'Clear',
+    remainingTime: 'Time remaining',
     canvasLabel: 'Drawing canvas',
     clearDrawing: 'Clear Drawing',
     leaveDuel: 'Leave Duel',
@@ -220,9 +244,16 @@ const timerDisplay = document.getElementById('timerDisplay');
 const brushColorInput = document.getElementById('brushColorInput');
 const brushSizeInput = document.getElementById('brushSizeInput');
 const brushSizeDisplay = document.getElementById('brushSizeDisplay');
+const brushOpacityInput = document.getElementById('brushOpacityInput');
+const brushOpacityDisplay = document.getElementById('brushOpacityDisplay');
 const brushButton = document.getElementById('brushButton');
 const eraserButton = document.getElementById('eraserButton');
+const bucketButton = document.getElementById('bucketButton');
+const undoButton = document.getElementById('undoButton');
+const redoButton = document.getElementById('redoButton');
 const clearButton = document.getElementById('clearButton');
+const bottomClearButton = document.getElementById('bottomClearButton');
+const colorSwatches = Array.from(document.querySelectorAll('.color-swatch'));
 const resetButton = document.getElementById('resetButton');
 const statusMessage = document.getElementById('statusMessage');
 const resultRoom = document.getElementById('resultRoom');
@@ -251,6 +282,8 @@ let gameStartTimeoutId = null;
 let duelServerOffset = 0;
 let brushColor = DEFAULT_BRUSH_COLOR;
 let brushSize = DEFAULT_BRUSH_SIZE;
+let brushOpacity = DEFAULT_BRUSH_OPACITY;
+let currentTool = 'brush';
 let isEraserActive = false;
 let isSoloMode = false;
 let currentLanguage = 'pt-BR';
@@ -260,6 +293,9 @@ let latestJudgeReasons = {
   reasonPt: '',
   reasonEn: '',
 };
+let undoStack = [];
+let redoStack = [];
+let areToolControlsDisabled = true;
 
 function handleSoloMode() {
   const nickname = getNickname();
@@ -354,6 +390,7 @@ function startGame(payload) {
 
   clearTimeout(gameStartTimeoutId);
   clearCanvas(true);
+  resetCanvasHistory();
   prepareCanvas();
   updateGameInfo(payload.opponentNickname);
   updateTimerDisplay();
@@ -363,6 +400,7 @@ function startGame(payload) {
   resultScreen.hidden = true;
   gameScreen.hidden = false;
   clearButton.disabled = true;
+  bottomClearButton.disabled = true;
   setToolControlsDisabled(true);
   canvas.classList.add('is-locked');
   statusMessage.textContent = t('preparing');
@@ -372,6 +410,7 @@ function startGame(payload) {
   gameStartTimeoutId = setTimeout(() => {
     isCanvasLocked = false;
     clearButton.disabled = false;
+    bottomClearButton.disabled = false;
     setToolControlsDisabled(false);
     canvas.classList.remove('is-locked');
     statusMessage.textContent = '';
@@ -416,6 +455,7 @@ function endGame() {
 
   canvas.classList.add('is-locked');
   clearButton.disabled = true;
+  bottomClearButton.disabled = true;
   setToolControlsDisabled(true);
   statusMessage.textContent = t('timeEndedSending');
   submitDrawing();
@@ -523,8 +563,15 @@ function clearCanvas(force = false) {
     return;
   }
 
+  if (!force) {
+    saveCanvasState();
+  }
+
+  context.globalAlpha = 1;
+  context.globalCompositeOperation = 'source-over';
   context.fillStyle = '#ffffff';
   context.fillRect(0, 0, canvas.width, canvas.height);
+  applyCurrentTool();
 }
 
 function getCanvasImage() {
@@ -605,6 +652,8 @@ function resetGame() {
   resetDrawingTools();
 
   clearCanvas(true);
+  clearButton.disabled = true;
+  bottomClearButton.disabled = true;
   updateTimerDisplay();
   updateStartButtons();
   canvas.classList.add('is-locked');
@@ -639,6 +688,7 @@ function startDrawing(event) {
   isDrawing = true;
   const position = getCanvasPosition(event);
 
+  saveCanvasState();
   applyCurrentTool();
   context.beginPath();
   context.moveTo(position.x, position.y);
@@ -790,7 +840,9 @@ function getLocalizedJudgeReason() {
 }
 
 function applyCurrentTool() {
-  context.strokeStyle = isEraserActive ? ERASER_COLOR : brushColor;
+  context.globalAlpha = currentTool === 'eraser' ? 1 : brushOpacity;
+  context.globalCompositeOperation = 'source-over';
+  context.strokeStyle = currentTool === 'eraser' ? ERASER_COLOR : brushColor;
   context.lineWidth = brushSize;
   context.lineCap = 'round';
   context.lineJoin = 'round';
@@ -801,27 +853,121 @@ function updateBrushSize() {
   brushSizeDisplay.textContent = `${brushSize}px`;
 }
 
+function updateBrushOpacity() {
+  brushOpacity = Number(brushOpacityInput.value) / 100;
+  brushOpacityDisplay.textContent = `${brushOpacityInput.value}%`;
+}
+
 function setDrawingMode(isEraser) {
-  isEraserActive = isEraser;
-  brushButton.classList.toggle('is-active', !isEraserActive);
-  eraserButton.classList.toggle('is-active', isEraserActive);
-  canvas.classList.toggle('is-erasing', isEraserActive);
+  setDrawingTool(isEraser ? 'eraser' : 'brush');
+}
+
+function setDrawingTool(tool) {
+  currentTool = tool;
+  isEraserActive = tool === 'eraser';
+  brushButton.classList.toggle('is-active', tool === 'brush');
+  eraserButton.classList.toggle('is-active', tool === 'eraser');
+  bucketButton.classList.toggle('is-active', tool === 'bucket');
+  canvas.classList.toggle('is-erasing', tool === 'eraser');
+  applyCurrentTool();
+}
+
+function setBrushColor(color) {
+  brushColor = color;
+  brushColorInput.value = color;
+  colorSwatches.forEach((swatch) => {
+    swatch.classList.toggle('is-active', swatch.dataset.color.toLowerCase() === color.toLowerCase());
+  });
+  setDrawingTool('brush');
+}
+
+function fillCanvasWithCurrentColor() {
+  if (isCanvasLocked) {
+    return;
+  }
+
+  saveCanvasState();
+  context.globalAlpha = brushOpacity;
+  context.globalCompositeOperation = 'source-over';
+  context.fillStyle = brushColor;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  applyCurrentTool();
+}
+
+function saveCanvasState() {
+  undoStack.push(context.getImageData(0, 0, canvas.width, canvas.height));
+
+  if (undoStack.length > MAX_HISTORY_STEPS) {
+    undoStack.shift();
+  }
+
+  redoStack = [];
+  updateHistoryButtons();
+}
+
+function restoreCanvasState(imageData) {
+  context.globalAlpha = 1;
+  context.globalCompositeOperation = 'source-over';
+  context.putImageData(imageData, 0, 0);
+  applyCurrentTool();
+}
+
+function undoDrawing() {
+  if (isCanvasLocked || undoStack.length === 0) {
+    return;
+  }
+
+  redoStack.push(context.getImageData(0, 0, canvas.width, canvas.height));
+  restoreCanvasState(undoStack.pop());
+  updateHistoryButtons();
+}
+
+function redoDrawing() {
+  if (isCanvasLocked || redoStack.length === 0) {
+    return;
+  }
+
+  undoStack.push(context.getImageData(0, 0, canvas.width, canvas.height));
+  restoreCanvasState(redoStack.pop());
+  updateHistoryButtons();
+}
+
+function resetCanvasHistory() {
+  undoStack = [];
+  redoStack = [];
+  updateHistoryButtons();
+}
+
+function updateHistoryButtons() {
+  undoButton.disabled = areToolControlsDisabled || undoStack.length === 0;
+  redoButton.disabled = areToolControlsDisabled || redoStack.length === 0;
 }
 
 function setToolControlsDisabled(isDisabled) {
+  areToolControlsDisabled = isDisabled;
   brushColorInput.disabled = isDisabled;
   brushSizeInput.disabled = isDisabled;
+  brushOpacityInput.disabled = isDisabled;
   brushButton.disabled = isDisabled;
   eraserButton.disabled = isDisabled;
+  bucketButton.disabled = isDisabled;
+  colorSwatches.forEach((swatch) => {
+    swatch.disabled = isDisabled;
+  });
+  updateHistoryButtons();
 }
 
 function resetDrawingTools() {
   brushColor = DEFAULT_BRUSH_COLOR;
   brushSize = DEFAULT_BRUSH_SIZE;
+  brushOpacity = DEFAULT_BRUSH_OPACITY;
   brushColorInput.value = DEFAULT_BRUSH_COLOR;
   brushSizeInput.value = String(DEFAULT_BRUSH_SIZE);
+  brushOpacityInput.value = String(DEFAULT_BRUSH_OPACITY * 100);
   updateBrushSize();
-  setDrawingMode(false);
+  updateBrushOpacity();
+  setBrushColor(DEFAULT_BRUSH_COLOR);
+  resetCanvasHistory();
   setToolControlsDisabled(true);
 }
 
@@ -925,13 +1071,24 @@ readyButton.addEventListener('click', handleReadyClick);
 backToMenuButton.addEventListener('click', resetGame);
 resultBackToMenuButton.addEventListener('click', returnToRoomAfterResult);
 brushColorInput.addEventListener('input', () => {
-  brushColor = brushColorInput.value;
-  setDrawingMode(false);
+  setBrushColor(brushColorInput.value);
+});
+colorSwatches.forEach((swatch) => {
+  swatch.addEventListener('click', () => setBrushColor(swatch.dataset.color));
 });
 brushSizeInput.addEventListener('input', updateBrushSize);
+brushOpacityInput.addEventListener('input', updateBrushOpacity);
 brushButton.addEventListener('click', () => setDrawingMode(false));
 eraserButton.addEventListener('click', () => setDrawingMode(true));
+bucketButton.addEventListener('click', () => {
+  setDrawingTool('bucket');
+  fillCanvasWithCurrentColor();
+  setDrawingTool('brush');
+});
+undoButton.addEventListener('click', undoDrawing);
+redoButton.addEventListener('click', redoDrawing);
 clearButton.addEventListener('click', () => clearCanvas());
+bottomClearButton.addEventListener('click', () => clearCanvas());
 resetButton.addEventListener('click', resetGame);
 canvas.addEventListener('pointerdown', startDrawing);
 canvas.addEventListener('pointermove', draw);
