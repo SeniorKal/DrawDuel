@@ -73,6 +73,7 @@ const TRANSLATIONS = {
     joiningRoom: 'Entrando na sala...',
     connectionFailed: 'N\u00e3o foi poss\u00edvel conectar ao servidor.',
     backToMenu: 'Voltar ao Menu',
+    backToRoom: 'Voltar para a Sala',
     nicknameRequired: 'Digite um nickname.',
     roomNotFound: 'Sala n\u00e3o encontrada.',
     roomFullOrStarted: 'Sala cheia ou duelo j\u00e1 iniciado.',
@@ -148,6 +149,7 @@ const TRANSLATIONS = {
     joiningRoom: 'Joining room...',
     connectionFailed: 'Could not connect to the server.',
     backToMenu: 'Back to Menu',
+    backToRoom: 'Back to Room',
     nicknameRequired: 'Enter a nickname.',
     roomNotFound: 'Room not found.',
     roomFullOrStarted: 'Room is full or the duel has already started.',
@@ -465,6 +467,8 @@ function showResult(payload) {
   gameScreen.hidden = true;
   resultScreen.hidden = false;
   statusMessage.textContent = '';
+  resultBackToMenuButton.textContent = t('backToRoom');
+  resultBackToMenuButton.dataset.resultAction = 'room';
 }
 
 function showDuelResult(payload) {
@@ -491,6 +495,18 @@ function showDuelResult(payload) {
   gameScreen.hidden = true;
   resultScreen.hidden = false;
   statusMessage.textContent = '';
+  resultBackToMenuButton.textContent = t('backToRoom');
+  resultBackToMenuButton.dataset.resultAction = 'room';
+}
+
+function returnToRoomAfterResult() {
+  if (isSoloMode || !socket || !currentRoomCode) {
+    resetGame();
+    return;
+  }
+
+  resultBackToMenuButton.disabled = true;
+  socket.emit('return-to-room');
 }
 
 function clearCanvas(force = false) {
@@ -564,6 +580,9 @@ function resetGame() {
   startMessage.textContent = '';
   resultRoom.textContent = '-';
   resultTheme.textContent = '-';
+  resultBackToMenuButton.disabled = false;
+  resultBackToMenuButton.dataset.resultAction = '';
+  resultBackToMenuButton.textContent = t('backToMenu');
   winnerMessage.textContent = t('fakeWinnerEmpty');
   judgeReason.textContent = '';
   player1ScoreLabel.textContent = 'Player 1';
@@ -722,6 +741,10 @@ function applyLanguage() {
     winnerMessage.textContent = t('fakeWinnerEmpty');
   }
 
+  if (!resultScreen.hidden && resultBackToMenuButton.dataset.resultAction === 'room') {
+    resultBackToMenuButton.textContent = t('backToRoom');
+  }
+
   if (!waitingScreen.hidden && latestRoomPlayers.length > 0) {
     renderWaitingRoom(latestRoomPlayers);
   }
@@ -800,6 +823,8 @@ function handleRoomState(payload) {
   waitingScreen.hidden = false;
   gameScreen.hidden = true;
   resultScreen.hidden = true;
+  resultBackToMenuButton.disabled = false;
+  resultBackToMenuButton.dataset.resultAction = '';
   roomCodeDisplay.textContent = payload.roomCode;
   renderWaitingRoom(latestRoomPlayers);
 }
@@ -876,7 +901,7 @@ createRoomButton.addEventListener('click', handleCreateRoom);
 joinRoomButton.addEventListener('click', handleJoinRoom);
 readyButton.addEventListener('click', handleReadyClick);
 backToMenuButton.addEventListener('click', resetGame);
-resultBackToMenuButton.addEventListener('click', resetGame);
+resultBackToMenuButton.addEventListener('click', returnToRoomAfterResult);
 brushColorInput.addEventListener('input', () => {
   brushColor = brushColorInput.value;
   setDrawingMode(false);

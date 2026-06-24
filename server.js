@@ -165,6 +165,38 @@ function markPlayerReady(socket) {
   }
 }
 
+function returnPlayerToRoom(socket) {
+  const { roomCode } = socket.data;
+
+  if (!roomCode || !rooms.has(roomCode)) {
+    emitRoomError(socket, 'roomNotFound', 'Sala n\u00e3o encontrada.');
+    return;
+  }
+
+  const room = rooms.get(roomCode);
+  const player = room.players.find((item) => item.socketId === socket.id);
+
+  if (!player) {
+    emitRoomError(socket, 'playerNotInRoom', 'Jogador n\u00e3o pertence a esta sala.');
+    return;
+  }
+
+  player.ready = false;
+
+  if (room.status === 'finished') {
+    room.status = 'waiting';
+    room.theme = null;
+    room.drawings = [];
+    room.judgement = null;
+
+    room.players.forEach((item) => {
+      item.ready = false;
+    });
+  }
+
+  emitRoomState(roomCode);
+}
+
 function startDuel(roomCode) {
   const room = rooms.get(roomCode);
 
@@ -345,6 +377,10 @@ io.on('connection', (socket) => {
 
   socket.on('player-ready', () => {
     markPlayerReady(socket);
+  });
+
+  socket.on('return-to-room', () => {
+    returnPlayerToRoom(socket);
   });
 
   socket.on('submit-drawing', async (payload) => {

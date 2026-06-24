@@ -103,6 +103,7 @@ Crit\u00e9rios:
 - Qualidade geral do desenho
 
 Escolha apenas um vencedor.
+Na explica\u00e7\u00e3o, use os nomes reais "${player1Name}" e "${player2Name}". N\u00e3o escreva "jogador 1" ou "jogador 2" na explica\u00e7\u00e3o.
 
 Responda SOMENTE em JSON:
 
