@@ -1049,6 +1049,58 @@ button:disabled {
     border-bottom: 0;
   }
 
+  .game-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .drawing-layout {
+    display: contents;
+  }
+
+  .game-info-panel {
+    order: 1;
+  }
+
+  .drawing-toolbar {
+    order: 2;
+    margin: 0;
+    padding: 12px 14px;
+  }
+
+  .drawing-toolbar .toolbar-group {
+    min-height: auto;
+  }
+
+  .drawing-toolbar .tool-button-list,
+  .drawing-toolbar .color-tools,
+  .drawing-toolbar .color-palette,
+  .drawing-toolbar .brush-size-options {
+    flex-wrap: wrap;
+  }
+
+  .drawing-toolbar .tool-button {
+    min-width: 56px;
+    min-height: 44px;
+  }
+
+  .drawing-toolbar .opacity-options {
+    grid-template-columns: repeat(4, minmax(54px, 1fr));
+  }
+
+  .canvas-stage {
+    order: 3;
+  }
+
+  .game-card > .actions {
+    order: 4;
+  }
+
+  .status-message {
+    order: 5;
+  }
+
   .game-info-panel {
     min-height: auto;
   }
