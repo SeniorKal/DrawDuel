@@ -6,6 +6,7 @@ const ERASER_COLOR = '#ffffff';
 const MAX_HISTORY_STEPS = 20;
 const BUCKET_FILL_TOLERANCE = 88;
 const BUCKET_EDGE_TOLERANCE = 126;
+const DEFAULT_DUEL_DURATION_SECONDS = 60;
 const DEFAULT_CATEGORY_KEY = 'animals';
 const THEME_CATEGORIES = {
   animals: {
@@ -161,6 +162,11 @@ const TRANSLATIONS = {
     menuDescription: 'Escolha como quer jogar e mostre seu desenho antes do tempo acabar.',
     nicknamePlaceholder: 'Ex: PixelMaster',
     category: 'Categoria de tema',
+    drawTime: 'Tempo de desenho',
+    duration60: '1 min',
+    duration90: '1 min 30 seg',
+    duration120: '2 min',
+    duration300: '5 min',
     gameModesLabel: 'Modos de jogo',
     soloMode: 'Jogo Solo',
     soloModeDescription: 'Treine contra o tempo',
@@ -254,6 +260,11 @@ const TRANSLATIONS = {
     menuDescription: 'Choose how you want to play and draw before time runs out.',
     nicknamePlaceholder: 'Ex: PixelMaster',
     category: 'Theme category',
+    drawTime: 'Drawing time',
+    duration60: '1 min',
+    duration90: '1 min 30 sec',
+    duration120: '2 min',
+    duration300: '5 min',
     gameModesLabel: 'Game modes',
     soloMode: 'Solo Game',
     soloModeDescription: 'Practice against the clock',
@@ -353,6 +364,7 @@ const nicknameInput = document.getElementById('nicknameInput');
 const roomCodeInput = document.getElementById('roomCodeInput');
 const categorySelect = document.getElementById('categorySelect');
 const waitingCategorySelect = document.getElementById('waitingCategorySelect');
+const waitingDurationSelect = document.getElementById('waitingDurationSelect');
 const soloModeButton = document.getElementById('soloModeButton');
 const friendsModeButton = document.getElementById('friendsModeButton');
 const privateRoomPanel = document.getElementById('privateRoomPanel');
@@ -405,6 +417,7 @@ let currentPlayer = '';
 let currentRoomCode = '';
 let currentTheme = '';
 let currentCategoryKey = DEFAULT_CATEGORY_KEY;
+let currentDuelDurationSeconds = DEFAULT_DUEL_DURATION_SECONDS;
 let currentOpponentNickname = '';
 let isDrawing = false;
 let lastDrawPosition = null;
@@ -532,6 +545,7 @@ function startGame(payload) {
   duelServerOffset = payload.serverNow ? payload.serverNow - Date.now() : 0;
   currentRoomCode = payload.roomCode;
   currentCategoryKey = payload.categoryKey || currentCategoryKey;
+  currentDuelDurationSeconds = payload.durationSeconds || currentDuelDurationSeconds;
   currentTheme = payload.theme;
   currentOpponentNickname = payload.opponentNickname;
   latestRoomPlayers = [];
@@ -822,12 +836,14 @@ function resetGame() {
   isCanvasLocked = true;
   hasSubmittedDrawing = false;
   timeRemaining = GAME_DURATION_SECONDS;
+  currentDuelDurationSeconds = DEFAULT_DUEL_DURATION_SECONDS;
   isSoloMode = false;
 
   nicknameInput.value = '';
   roomCodeInput.value = '';
   categorySelect.value = currentCategoryKey;
   waitingCategorySelect.value = currentCategoryKey;
+  waitingDurationSelect.value = String(currentDuelDurationSeconds);
   privateRoomPanel.hidden = true;
   soloModeButton.classList.remove('is-selected');
   friendsModeButton.classList.remove('is-selected');
@@ -1004,7 +1020,15 @@ function updateGameInfo(opponentNickname) {
 }
 
 function updateTimerDisplay() {
-  timerDisplay.textContent = `${timeRemaining}s`;
+  const minutes = Math.floor(timeRemaining / 60);
+  const seconds = timeRemaining % 60;
+
+  if (minutes > 0) {
+    timerDisplay.textContent = `${minutes}:${String(seconds).padStart(2, '0')}`;
+    return;
+  }
+
+  timerDisplay.textContent = `${seconds}s`;
 }
 
 function updateStartButtons() {
@@ -1433,6 +1457,7 @@ function setSettingsVisible(isVisible) {
 function handleRoomState(payload) {
   currentRoomCode = payload.roomCode;
   currentCategoryKey = payload.categoryKey || DEFAULT_CATEGORY_KEY;
+  currentDuelDurationSeconds = payload.durationSeconds || DEFAULT_DUEL_DURATION_SECONDS;
   latestRoomPlayers = payload.players || [];
 
   setSettingsVisible(false);
@@ -1444,6 +1469,7 @@ function handleRoomState(payload) {
   resultBackToMenuButton.dataset.resultAction = '';
   roomCodeDisplay.textContent = payload.roomCode;
   waitingCategorySelect.value = currentCategoryKey;
+  waitingDurationSelect.value = String(currentDuelDurationSeconds);
   renderWaitingRoom(latestRoomPlayers);
 }
 
@@ -1504,6 +1530,14 @@ function handleWaitingCategoryChange() {
   }
 }
 
+function handleWaitingDurationChange() {
+  currentDuelDurationSeconds = Number(waitingDurationSelect.value) || DEFAULT_DUEL_DURATION_SECONDS;
+
+  if (socket && socket.connected && currentRoomCode) {
+    socket.emit('update-room-duration', { durationSeconds: currentDuelDurationSeconds });
+  }
+}
+
 function handleKeyboardShortcuts(event) {
   const activeTagName = document.activeElement?.tagName?.toLowerCase();
   const isTyping = activeTagName === 'input' || activeTagName === 'textarea';
@@ -1546,6 +1580,7 @@ roomCodeInput.addEventListener('paste', () => {
 });
 categorySelect.addEventListener('change', handleCategoryChange);
 waitingCategorySelect.addEventListener('change', handleWaitingCategoryChange);
+waitingDurationSelect.addEventListener('change', handleWaitingDurationChange);
 settingsButton.addEventListener('click', toggleSettingsPanel);
 ptLanguageButton.addEventListener('click', () => setLanguage('pt-BR'));
 enLanguageButton.addEventListener('click', () => setLanguage('en'));

@@ -1,6 +1,8 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS || 30000);
+const GEMINI_MAX_ATTEMPTS = Number(process.env.GEMINI_MAX_ATTEMPTS || 3);
 
 function createGeminiClient() {
   if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'sua_chave_aqui') {
@@ -36,7 +38,56 @@ function extractJson(text) {
     return fencedMatch[1].trim();
   }
 
+  const firstBraceIndex = cleanedText.indexOf('{');
+  const lastBraceIndex = cleanedText.lastIndexOf('}');
+
+  if (firstBraceIndex !== -1 && lastBraceIndex !== -1 && lastBraceIndex > firstBraceIndex) {
+    return cleanedText.slice(firstBraceIndex, lastBraceIndex + 1);
+  }
+
   return cleanedText;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function withTimeout(promise, timeoutMs) {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`Gemini request timed out after ${timeoutMs}ms.`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function generateJsonWithRetry(model, parts) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= GEMINI_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await withTimeout(model.generateContent(parts), GEMINI_TIMEOUT_MS);
+      const responseText = response.response.text();
+      return JSON.parse(extractJson(responseText));
+    } catch (error) {
+      lastError = error;
+      console.error(`Gemini attempt ${attempt}/${GEMINI_MAX_ATTEMPTS} failed: ${error.message}`);
+
+      if (attempt < GEMINI_MAX_ATTEMPTS) {
+        await sleep(350 * attempt);
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 function normalizeScore(score) {
@@ -134,14 +185,11 @@ Responda SOMENTE em JSON:
 `;
 
   // Send the prompt followed by player 1 image and player 2 image in the same order.
-  const response = await model.generateContent([
+  const parsedResult = await generateJsonWithRetry(model, [
     prompt,
     player1ImagePart,
     player2ImagePart,
   ]);
-
-  const responseText = response.response.text();
-  const parsedResult = JSON.parse(extractJson(responseText));
 
   return normalizeJudgement(parsedResult);
 }
@@ -196,13 +244,10 @@ Responda SOMENTE em JSON:
 }
 `;
 
-  const response = await model.generateContent([
+  const parsedResult = await generateJsonWithRetry(model, [
     prompt,
     playerImagePart,
   ]);
-
-  const responseText = response.response.text();
-  const parsedResult = JSON.parse(extractJson(responseText));
 
   return normalizeSoloJudgement(parsedResult);
 }

@@ -144,6 +144,7 @@ const THEME_CATEGORIES = {
 const PORT = 3000;
 const ROOM_CODE_LENGTH = 6;
 const DUEL_DURATION_SECONDS = 60;
+const ALLOWED_DUEL_DURATIONS = new Set([60, 90, 120, 300]);
 const rooms = new Map();
 
 const app = express();
@@ -170,6 +171,14 @@ function getThemeLabel(themeKey) {
   const theme = allThemes.find(([key]) => key === themeKey);
 
   return theme ? theme[1] : themeKey;
+}
+
+function normalizeDuelDuration(durationSeconds) {
+  const numericDuration = Number(durationSeconds);
+
+  return ALLOWED_DUEL_DURATIONS.has(numericDuration)
+    ? numericDuration
+    : DUEL_DURATION_SECONDS;
 }
 
 app.get('/api/health', (request, response) => {
@@ -227,6 +236,7 @@ function emitRoomState(roomCode) {
     roomCode,
     status: room.status,
     categoryKey: room.categoryKey,
+    durationSeconds: room.durationSeconds,
     players: room.players.map((player) => ({
       nickname: player.nickname,
       ready: player.ready,
@@ -262,6 +272,7 @@ function createRoom(socket, nickname, categoryKey = DEFAULT_CATEGORY_KEY) {
     code: roomCode,
     players: [{ socketId: socket.id, nickname, ready: false }],
     categoryKey: normalizeCategoryKey(categoryKey),
+    durationSeconds: DUEL_DURATION_SECONDS,
     theme: null,
     drawings: [],
     status: 'waiting',
@@ -328,6 +339,28 @@ function updateRoomCategory(socket, categoryKey) {
   }
 
   room.categoryKey = normalizeCategoryKey(categoryKey);
+  room.players.forEach((player) => {
+    player.ready = false;
+  });
+  emitRoomState(roomCode);
+}
+
+function updateRoomDuration(socket, durationSeconds) {
+  const { roomCode } = socket.data;
+
+  if (!roomCode || !rooms.has(roomCode)) {
+    emitRoomError(socket, 'roomNotFound', 'Sala n\u00e3o encontrada.');
+    return;
+  }
+
+  const room = rooms.get(roomCode);
+
+  if (room.status !== 'waiting') {
+    emitRoomError(socket, 'roomFullOrStarted', 'Sala cheia ou duelo j\u00e1 iniciado.');
+    return;
+  }
+
+  room.durationSeconds = normalizeDuelDuration(durationSeconds);
   room.players.forEach((player) => {
     player.ready = false;
   });
@@ -404,6 +437,7 @@ function startDuel(roomCode) {
   }
 
   room.categoryKey = normalizeCategoryKey(room.categoryKey);
+  room.durationSeconds = normalizeDuelDuration(room.durationSeconds);
   room.theme = getRandomTheme(room.categoryKey);
   room.status = 'playing';
   room.drawings = [];
@@ -412,7 +446,7 @@ function startDuel(roomCode) {
   });
 
   const startsAt = Date.now() + 1000;
-  const endsAt = startsAt + DUEL_DURATION_SECONDS * 1000;
+  const endsAt = startsAt + room.durationSeconds * 1000;
 
   room.players.forEach((player) => {
     const opponent = room.players.find((item) => item.socketId !== player.socketId);
@@ -422,7 +456,7 @@ function startDuel(roomCode) {
       categoryKey: room.categoryKey,
       theme: room.theme,
       opponentNickname: opponent.nickname,
-      durationSeconds: DUEL_DURATION_SECONDS,
+      durationSeconds: room.durationSeconds,
       serverNow: Date.now(),
       startsAt,
       endsAt,
@@ -586,6 +620,10 @@ io.on('connection', (socket) => {
 
   socket.on('update-room-category', ({ categoryKey }) => {
     updateRoomCategory(socket, String(categoryKey || DEFAULT_CATEGORY_KEY));
+  });
+
+  socket.on('update-room-duration', ({ durationSeconds }) => {
+    updateRoomDuration(socket, durationSeconds);
   });
 
   socket.on('return-to-room', () => {

@@ -91,6 +91,15 @@
         <span data-i18n="category">Categoria</span>
         <select id="waitingCategorySelect" class="category-select" aria-label="Categoria" data-i18n-aria-label="category"></select>
       </label>
+      <label class="waiting-category-control" for="waitingDurationSelect">
+        <span data-i18n="drawTime">Tempo de desenho</span>
+        <select id="waitingDurationSelect" class="category-select" aria-label="Tempo de desenho" data-i18n-aria-label="drawTime">
+          <option value="60" data-i18n="duration60">1 min</option>
+          <option value="90" data-i18n="duration90">1 min 30 seg</option>
+          <option value="120" data-i18n="duration120">2 min</option>
+          <option value="300" data-i18n="duration300">5 min</option>
+        </select>
+      </label>
       <p id="waitingRoomMessage" data-i18n="waitingPlayer">Aguardando outro jogador...</p>
       <div id="waitingPlayersList" class="waiting-players" aria-label="Jogadores na sala" data-i18n-aria-label="playersInRoomLabel"></div>
       <p id="readyStatusMessage" class="ready-status" role="status" aria-live="polite"></p>
@@ -134,6 +143,8 @@
               <button type="button" class="color-swatch" style="--swatch-color: #7c3aed;" data-color="#7c3aed" aria-label="Roxo Violeta"></button>
               <button type="button" class="color-swatch" style="--swatch-color: #ec4899;" data-color="#ec4899" aria-label="Rosa"></button>
               <button type="button" class="color-swatch" style="--swatch-color: #92400e;" data-color="#92400e" aria-label="Marrom"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #f2c7a5;" data-color="#f2c7a5" aria-label="Pele clara"></button>
+              <button type="button" class="color-swatch" style="--swatch-color: #6b3f2a;" data-color="#6b3f2a" aria-label="Pele escura"></button>
             </div>
           </div>
         </div>
