@@ -8,6 +8,10 @@ const {
   judgeDrawings: judgeDrawingsWithGemini,
   judgeSoloDrawing: judgeSoloDrawingWithGemini,
 } = require('./services/geminiJudge');
+const {
+  judgeDrawings: judgeDrawingsWithOpenRouter,
+  judgeSoloDrawing: judgeSoloDrawingWithOpenRouter,
+} = require('./services/openRouterJudge');
 
 const DEFAULT_CATEGORY_KEY = 'animals';
 const THEME_CATEGORIES = {
@@ -205,18 +209,62 @@ app.post('/api/judge-solo', async (request, response) => {
       playerImage: drawingDataUrl,
     });
 
-    response.json(judgement);
-  } catch (error) {
-    console.error(`Gemini solo judge failed. Using fallback judgement: ${error.message}`);
-    response.json({
-      score: 7,
-      reason: 'A avalia\u00e7\u00e3o do Gemini falhou, mas seu desenho foi enviado corretamente.',
-      reasonPt: 'A avalia\u00e7\u00e3o do Gemini falhou, mas seu desenho foi enviado corretamente.',
-      reasonEn: 'Gemini judging failed, but your drawing was submitted correctly.',
-      fallback: true,
-    });
+    response.json({ ...judgement, provider: judgement.provider || 'gemini' });
+  } catch (geminiError) {
+    console.error(`Gemini solo judge failed. Trying OpenRouter: ${geminiError.message}`);
+
+    try {
+      const judgement = await judgeSoloDrawingWithOpenRouter({
+        theme,
+        playerName,
+        playerImage: drawingDataUrl,
+      });
+
+      response.json(judgement);
+    } catch (openRouterError) {
+      console.error(`OpenRouter solo judge failed. Using fallback judgement: ${openRouterError.message}`);
+      response.json({
+        score: 7,
+        reason: 'A avalia\u00e7\u00e3o das IAs falhou, mas seu desenho foi enviado corretamente.',
+        reasonPt: 'A avalia\u00e7\u00e3o das IAs falhou, mas seu desenho foi enviado corretamente.',
+        reasonEn: 'AI judging failed, but your drawing was submitted correctly.',
+        provider: 'fallback',
+        fallback: true,
+      });
+    }
   }
 });
+
+async function judgeRoomDrawings(room, player1, player2, player1Drawing, player2Drawing) {
+  const theme = getThemeLabel(room.theme);
+
+  try {
+    const judgement = await judgeDrawingsWithGemini({
+      theme,
+      player1Name: player1.nickname,
+      player2Name: player2.nickname,
+      player1Image: player1Drawing.drawingDataUrl,
+      player2Image: player2Drawing.drawingDataUrl,
+    });
+
+    return {
+      ...judgement,
+      provider: judgement.provider || 'gemini',
+    };
+  } catch (geminiError) {
+    console.error(`Gemini duel judge failed. Trying OpenRouter: ${geminiError.message}`);
+  }
+
+  const judgement = await judgeDrawingsWithOpenRouter({
+    theme,
+    player1Name: player1.nickname,
+    player2Name: player2.nickname,
+    player1Image: player1Drawing.drawingDataUrl,
+    player2Image: player2Drawing.drawingDataUrl,
+  });
+
+  return judgement;
+}
 
 function emitRoomError(socketOrRoom, messageKey, fallbackMessage) {
   socketOrRoom.emit('room-error', {
@@ -519,6 +567,7 @@ function getFallbackJudgement(room, errorMessage) {
     reason,
     reasonPt: reason,
     reasonEn,
+    provider: 'fallback',
   };
 }
 
@@ -537,16 +586,10 @@ async function finishDuel(roomCode) {
   let judgement;
 
   try {
-    // Send the completed duel to the Gemini judge service and wait for the verdict.
-    judgement = await judgeDrawingsWithGemini({
-      theme: getThemeLabel(room.theme),
-      player1Name: player1.nickname,
-      player2Name: player2.nickname,
-      player1Image: player1Drawing.drawingDataUrl,
-      player2Image: player2Drawing.drawingDataUrl,
-    });
+    // Try Gemini first, then OpenRouter before using the random fallback.
+    judgement = await judgeRoomDrawings(room, player1, player2, player1Drawing, player2Drawing);
   } catch (error) {
-    // If Gemini is unavailable or returns invalid JSON, keep the match flow alive with a random winner.
+    // If both AI providers are unavailable or return invalid JSON, keep the match flow alive.
     judgement = getFallbackJudgement(room, error.message);
   }
 
@@ -572,6 +615,7 @@ async function finishDuel(roomCode) {
     reason: judgement.reason,
     reasonPt: judgement.reasonPt || judgement.reason,
     reasonEn: judgement.reasonEn || judgement.reason,
+    judgeProvider: judgement.provider || 'gemini',
   });
 
   console.log(`duelo finalizado: ${roomCode}`);

@@ -76,12 +76,16 @@ Create a `.env` file in the project root:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 ```
 
 Optional:
 
 ```env
 GEMINI_MODEL=gemini-2.5-flash
+OPENROUTER_MODEL=qwen/qwen2.5-vl-32b-instruct:free
+GEMINI_MAX_ATTEMPTS=3
+OPENROUTER_MAX_ATTEMPTS=2
 ```
 
 On Render, add these values in the service environment variables panel. Do not commit your `.env` file.
