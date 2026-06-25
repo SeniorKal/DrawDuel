@@ -127,6 +127,61 @@ function normalizeSoloJudgement(result) {
   };
 }
 
+function buildDuelJudgePrompt({ theme, player1Name, player2Name }) {
+  return `
+Voc\u00ea \u00e9 o jurado oficial do jogo Draw Duel.
+
+Tema da rodada:
+"${theme}"
+
+Jogador 1: ${player1Name}
+Jogador 2: ${player2Name}
+
+Voc\u00ea receber\u00e1 dois desenhos.
+
+Sua miss\u00e3o \u00e9 decidir QUAL \u00c9 O MELHOR DESENHO.
+
+Crit\u00e9rios de avalia\u00e7\u00e3o (em ordem de import\u00e2ncia):
+
+1. O desenho representa corretamente o tema?
+2. Qualidade art\u00edstica.
+3. Criatividade.
+4. N\u00edvel de detalhes.
+5. Clareza visual.
+
+Regras IMPORTANTES:
+
+- O tema deve estar corretamente representado.
+- Se apenas um desenho representar corretamente o tema, ele deve vencer.
+- Se ambos representarem corretamente o tema, escolha aquele que for artisticamente melhor.
+- Valorize criatividade, composi\u00e7\u00e3o, detalhes e acabamento.
+- Um desenho bonito e criativo deve vencer um desenho simples quando ambos representam corretamente o tema.
+- Nunca escolha um desenho apenas porque \u00e9 bonito se ele n\u00e3o representar o tema corretamente.
+- Nunca declare empate.
+- Sempre escolha apenas um vencedor.
+- Se ambos forem ruins, escolha o menos ruim.
+- Se ambos forem excelentes, escolha o mais bonito, criativo e bem executado.
+- Utilize exclusivamente os nomes "${player1Name}" e "${player2Name}" nas explica\u00e7\u00f5es.
+- Nunca escreva "Jogador 1", "Jogador 2", "Player 1" ou "Player 2".
+- Responda SOMENTE com JSON v\u00e1lido.
+- N\u00e3o utilize markdown.
+- N\u00e3o utilize blocos \`\`\`.
+- N\u00e3o escreva nenhum texto fora do JSON.
+
+As notas devem refletir a qualidade geral do desenho, e n\u00e3o apenas quem venceu.
+
+Responda exatamente neste formato:
+
+{
+  "winner": "player1" ou "player2",
+  "player1Score": n\u00famero entre 0 e 10,
+  "player2Score": n\u00famero entre 0 e 10,
+  "reasonPt": "Explica\u00e7\u00e3o curta em portugu\u00eas citando os nomes dos jogadores.",
+  "reasonEn": "Short explanation in English mentioning the players' names."
+}
+`;
+}
+
 async function judgeDrawings({
   theme,
   player1Name,
@@ -152,41 +207,9 @@ async function judgeDrawings({
   const player1ImagePart = dataUrlToGeminiPart(player1Image);
   const player2ImagePart = dataUrlToGeminiPart(player2Image);
 
-  const prompt = `
-Voc\u00ea \u00e9 o jurado oficial do jogo Draw Duel.
-
-Tema da rodada:
-${theme}
-
-Jogador 1: ${player1Name}
-Jogador 2: ${player2Name}
-
-Analise os dois desenhos enviados.
-
-Crit\u00e9rios:
-- Representa\u00e7\u00e3o correta do tema
-- Clareza visual
-- Criatividade
-- Qualidade geral do desenho
-
-Escolha apenas um vencedor.
-Nas explica\u00e7\u00f5es, use os nomes reais "${player1Name}" e "${player2Name}". N\u00e3o escreva "jogador 1", "jogador 2", "player 1" ou "player 2" nas explica\u00e7\u00f5es.
-
-Responda SOMENTE em JSON:
-
-{
-  "winner": "player1" ou "player2",
-  "player1Score": n\u00famero de 0 a 10,
-  "player2Score": n\u00famero de 0 a 10,
-  "reason": "explica\u00e7\u00e3o curta em portugu\u00eas",
-  "reasonPt": "explica\u00e7\u00e3o curta em portugu\u00eas",
-  "reasonEn": "short explanation in English"
-}
-`;
-
   // Send the prompt followed by player 1 image and player 2 image in the same order.
   const parsedResult = await generateJsonWithRetry(model, [
-    prompt,
+    buildDuelJudgePrompt({ theme, player1Name, player2Name }),
     player1ImagePart,
     player2ImagePart,
   ]);
